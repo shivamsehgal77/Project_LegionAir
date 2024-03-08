@@ -26,9 +26,20 @@ Each of the follower and a leader drone uses Visual Inertial Odometry taken out 
 ## Milestones
 
 - [x] Collect data and retrain the Yolov5n model to identify m500 drone
-- [ ] Move the model to the drone's gpu, test for inference speed
-- [ ] Collect rosbag while both the follower and leader drones fly for testing sensor fusion
-- [ ] Write the ros node for sensor fusion and test the FPS with the rosbag
-- [ ] Convert ROS nodes written in python to C++ for high speed vectorization with Eigen3 library
-- [ ] Make builds for Arm64 linux computer and test the build run while on the ground
-- [ ] In the constructor, debug to ensure that the weight registration happens seamlessly.
+- [x] Move the model to the drone's gpu, test for inference speed
+- [x] Collect rosbag while both the follower and leader drones fly for testing sensor fusion
+- [x] Write the ros node for sensor fusion and test the FPS with the rosbag
+- [x] Convert ROS nodes written in python to C++ for high speed vectorization with Eigen3 library
+- [x] Make builds for Arm64 linux computer and test the build run while on the ground
+- [ ] Test run of the ROS nodes on follower drones while in flight
+- [ ] Benchmark and measure the position estimated by the tracking system of the follower drones
+- [ ] Write the ROS node which acts as a position+Velocity controller of the follower drones such that they are able to follow the leader drones around
+- [ ] Test flight of the ROS follower node with both the drones flying simultaneously
+- [ ] Write automations for simultaneous takeoff, arming, landing and mode switch of leader and follower drone
+- [ ] Test automations by flying one drone at a time and then both drones
+- [ ] Program software kill switch ROS service in both the leader and follower drones. Test the service out in flight and then make a GUI for doing the same
+- [ ] Replicate the above steps for the rest of the drones
+- [ ] Add swarm algorithm ROS nodes in the follower drones to maintain formation and execute coverage compensation maneuver
+- [ ] Test flight with 2 followers and 1 leader drone
+- [ ] Debug problems
+- [ ] Test flight with 4 followers and 1 leader drone
