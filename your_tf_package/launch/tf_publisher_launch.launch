@@ -1,0 +1,7 @@
+<launch>
+  <!-- Start the tf_publisher node -->
+  <!-- <node pkg="your_tf_package" type="tf_publisher.py" name="tf_publisher" output="screen"/> -->
+  <!-- Start the tf_publisher_cpp_node -->
+  <node pkg="your_tf_package" type="tf_publisher_cpp_node" name="tf_publisher_cpp_node"
+    output="screen" />
+</launch>

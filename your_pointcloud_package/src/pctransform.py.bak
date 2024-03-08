@@ -1,0 +1,212 @@
+#!/usr/bin/env python3
+
+import rospy
+import tf2_ros
+import sensor_msgs
+from sensor_msgs.msg import PointCloud2
+import sensor_msgs.point_cloud2 as pc2
+from geometry_msgs.msg import TransformStamped
+import numpy as np
+import std_msgs
+
+
+class PointCloudTransformer:
+    def __init__(self):
+        rospy.init_node("pointcloud_transformer", anonymous=True)
+
+        self.tof_frame = "world"
+        self.rgb_frame = "hires"
+
+        # Set up TF2 buffer and listener
+        self.tf_buffer = tf2_ros.Buffer()
+        self.tf_listener = tf2_ros.TransformListener(self.tf_buffer)
+
+        # Set up PointCloud2 subscriber and publishers
+        self.pointcloud_sub = rospy.Subscriber(
+            "/tof_pc", PointCloud2, self.pointcloud_callback
+        )
+        self.pointcloud_pub_body = rospy.Publisher(
+            "/pointcloud/body", PointCloud2, queue_size=10
+        )
+        self.pointcloud_pub_rgb = rospy.Publisher(
+            "/pointcloud/rgb", PointCloud2, queue_size=10
+        )
+
+    def pointcloud_callback(self, pointcloud_msg):
+        try:
+            # Get the transform from TOF to Body
+            tof_to_body_transform = self.get_transform(
+                self.tof_frame, "body", pointcloud_msg.header.stamp
+            )
+
+            # Get the transform from RGB to Body
+            rgb_to_body_transform = self.get_transform(
+                self.rgb_frame, "body", pointcloud_msg.header.stamp
+            )
+
+            # Transform point cloud to Body frame
+            body_pc = self.transform_pointcloud(pointcloud_msg, tof_to_body_transform)
+
+            # Transform point cloud to RGB frame
+            rgb_pc = self.transform_pointcloud(body_pc, rgb_to_body_transform)
+
+            # Publish transformed point clouds
+            self.pointcloud_pub_body.publish(body_pc)
+            self.pointcloud_pub_rgb.publish(rgb_pc)
+
+        except (
+            tf2_ros.LookupException,
+            tf2_ros.ConnectivityException,
+            tf2_ros.ExtrapolationException,
+        ) as e:
+            rospy.logwarn(f"Error while transforming point cloud: {e}")
+
+    def transform_pointcloud(self, input_pc, transform):
+        # Convert PointCloud2 to numpy array
+        pc_data = self.pointcloud_to_numpy(input_pc)
+
+        # Apply transformation
+        transformed_pc = self.apply_transform(pc_data, transform)
+
+        # Create a new PointCloud2 message
+        output_pc = self.numpy_to_pointcloud(transformed_pc, input_pc.header)
+
+        return output_pc
+
+    def pointcloud_to_numpy(self, pc_msg):
+        pc_data = np.frombuffer(pc_msg.data, dtype=np.float32)
+
+        # Check if the size is a multiple of 4 (x, y, z, intensity)
+        if len(pc_data) % 4 != 0:
+            rospy.logerr("Invalid point cloud data size. Expected a multiple of 4.")
+            return np.array([])
+
+        # Reshape the array with the correct shape (N, 4)
+        pc_data = pc_data.reshape((len(pc_data) // 4, 4))
+
+        # Extract x, y, z coordinates
+        pc_data = pc_data[:, :3]
+
+        return pc_data
+
+    def apply_transform(self, pc_data, transform):
+        # Append homogeneous coordinates (4xN matrix)
+        homogeneous_coords = np.hstack([pc_data, np.ones((pc_data.shape[0], 1))])
+
+        # Construct transformation matrix
+        translation_matrix = np.identity(4)
+        translation_matrix[:3, :3] = np.array(
+            [
+                [
+                    transform.transform.rotation.w**2
+                    + transform.transform.rotation.x**2
+                    - transform.transform.rotation.y**2
+                    - transform.transform.rotation.z**2,
+                    2
+                    * (
+                        transform.transform.rotation.x * transform.transform.rotation.y
+                        - transform.transform.rotation.w
+                        * transform.transform.rotation.z
+                    ),
+                    2
+                    * (
+                        transform.transform.rotation.x * transform.transform.rotation.z
+                        + transform.transform.rotation.w
+                        * transform.transform.rotation.y
+                    ),
+                ],
+                [
+                    2
+                    * (
+                        transform.transform.rotation.x * transform.transform.rotation.y
+                        + transform.transform.rotation.w
+                        * transform.transform.rotation.z
+                    ),
+                    transform.transform.rotation.w**2
+                    - transform.transform.rotation.x**2
+                    + transform.transform.rotation.y**2
+                    - transform.transform.rotation.z**2,
+                    2
+                    * (
+                        transform.transform.rotation.y * transform.transform.rotation.z
+                        - transform.transform.rotation.w
+                        * transform.transform.rotation.x
+                    ),
+                ],
+                [
+                    2
+                    * (
+                        transform.transform.rotation.x * transform.transform.rotation.z
+                        - transform.transform.rotation.w
+                        * transform.transform.rotation.y
+                    ),
+                    2
+                    * (
+                        transform.transform.rotation.y * transform.transform.rotation.z
+                        + transform.transform.rotation.w
+                        * transform.transform.rotation.x
+                    ),
+                    transform.transform.rotation.w**2
+                    - transform.transform.rotation.x**2
+                    - transform.transform.rotation.y**2
+                    + transform.transform.rotation.z**2,
+                ],
+            ]
+        )
+
+        translation_matrix[:3, 3] = [
+            transform.transform.translation.x,
+            transform.transform.translation.y,
+            transform.transform.translation.z,
+        ]
+
+        # Transform point cloud
+        transformed_pc = np.dot(translation_matrix, homogeneous_coords.T).T
+
+        return transformed_pc[:, :3]  # Extract x, y, z coordinates
+
+    def numpy_to_pointcloud(self, pc_data, header):
+        ros_dtype = 'f'
+        dtype = np.float32
+        itemsize = np.dtype(dtype).itemsize
+        data = pc_data.astype(dtype).tobytes()
+        fields = [pc2.PointField(
+        name=n, offset=i*itemsize, datatype=ros_dtype, count=1)
+        for i, n in enumerate('xyz')]
+        # header = std_msgs.Header(frame_id=header.frame_id)
+        return sensor_msgs.msg.PointCloud2(
+            header=header,
+            height=1, 
+            width=pc_data.shape[0],
+            is_dense=False,
+            is_bigendian=False,
+            fields=fields,
+            point_step=(itemsize * 3), # Every point consists of three float32s.
+            row_step=(itemsize * 3 * pc_data.shape[0]), 
+            data=data
+        )
+
+        return output_pc
+
+    def get_transform(self, source_frame, target_frame, stamp):
+        # Helper function to get transform using TF2 library
+        try:
+            transform_stamped = self.tf_buffer.lookup_transform(
+                target_frame, source_frame, stamp
+            )
+            return transform_stamped
+        except (
+            tf2_ros.LookupException,
+            tf2_ros.ConnectivityException,
+            tf2_ros.ExtrapolationException,
+        ) as e:
+            rospy.logwarn(f"Error while looking up transform: {e}")
+            return TransformStamped()  # Return an empty transform if lookup fails
+
+
+if __name__ == "__main__":
+    try:
+        pc_transformer = PointCloudTransformer()
+        rospy.spin()
+    except rospy.ROSInterruptException:
+        pass

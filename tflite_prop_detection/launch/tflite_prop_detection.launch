@@ -1,0 +1,3 @@
+<launch>
+  <node pkg="tflite_prop_detection" type="tflite_prop_detection_node.py" name="tflite_prop_detection" output="screen"/>
+</launch>
