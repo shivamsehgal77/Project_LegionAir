@@ -9,7 +9,6 @@ Swarming behavior using vision is quite common in the animal kingdom, birds floc
 Our objective would be to emulate the second formation where one of the drones in the flock looses track or is sent on a scouting mission ahead, 
 while the slower moving mother ship and it's flock reorients itself to account for the missing drone.
 
-## Graphical Representation
 * The below image shows the stages through which the swarm will execute a coverage compensation maneuver using just visual data of the tracked target
 ![](assets/repn1.png)
 
@@ -19,3 +18,7 @@ while the slower moving mother ship and it's flock reorients itself to account f
 
 * The next image shows the final formation:
 ![](assets/repn2.png)
+
+## Sensors and Hardware
+
+Each of the follower and a leader drone uses Visual Inertial Odometry taken out from the fisheye camera mounted on the drones for its local position estimate. The follower drones tra
