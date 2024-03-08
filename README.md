@@ -45,7 +45,7 @@ Each of the follower and a leader drone uses Visual Inertial Odometry taken out 
 - [ ] Test flight with 4 followers and 1 leader drone
 
 ## Videos
-The following video is of the testing of sensor fusion with detections coming in from the yolo algorithm:
+The following video is of the testing of sensor fusion with detections coming in from the yolo algorithm, The left frame of the video showing the red dots are the Time of flight points reflected from the drone inside the bbox and the right frame is the yolo detection feed
 
 https://github.com/darshit-desai/Project_LegionAir/assets/36150235/982f17dc-1fbe-4672-a3c1-f174a186cdca
 
