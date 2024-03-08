@@ -10,7 +10,12 @@ Our objective would be to emulate the second formation where one of the drones i
 while the slower moving mother ship and it's flock reorients itself to account for the missing drone.
 
 ## Graphical Representation
-The below image shows the stages through which the swarm will execute a coverage compensation maneuver using just visual data of the tracked target
+* The below image shows the stages through which the swarm will execute a coverage compensation maneuver using just visual data of the tracked target
+![](assets/repn1.png)
 
-![](assets/repn.png)
+* The below image shows the change in communication graphs of the drones, here nodes means drones:
+![](assets/GraphRepn.png)
 
+
+* The next image shows the final formation:
+![](assets/repn2.png)
