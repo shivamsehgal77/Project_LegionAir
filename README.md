@@ -21,7 +21,7 @@ while the slower moving mother ship and it's flock reorients itself to account f
 
 ## Sensors and Hardware
 
-Each of the follower and a leader drone uses Visual Inertial Odometry taken out from the fisheye camera mounted on the drones for its local position estimate. The follower drones track the leader drone using a hires RGB sensor and a Time of Flight sensor which fuse together using late-sensor fusion to get the position of the target
+Each of the follower and a leader drone uses Visual Inertial Odometry taken out from the fisheye camera mounted on the drones for its local position estimate. The follower drones track the leader drone using a hires RGB sensor and a Time of Flight sensor which fuse together using late-sensor fusion to get the position of the target.
 
 ## Milestones
 
@@ -43,3 +43,7 @@ Each of the follower and a leader drone uses Visual Inertial Odometry taken out 
 - [ ] Test flight with 2 followers and 1 leader drone
 - [ ] Debug problems
 - [ ] Test flight with 4 followers and 1 leader drone
+
+## Videos
+The following video is of the testing of sensor fusion with detections coming in from the yolo algorithm:
+![](assets/Video_fusion.mp4)
