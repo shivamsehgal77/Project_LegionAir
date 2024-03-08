@@ -47,3 +47,8 @@ Each of the follower and a leader drone uses Visual Inertial Odometry taken out 
 ## Videos
 The following video is of the testing of sensor fusion with detections coming in from the yolo algorithm:
 
+https://github.com/darshit-desai/Project_LegionAir/assets/36150235/982f17dc-1fbe-4672-a3c1-f174a186cdca
+
+
+
+
