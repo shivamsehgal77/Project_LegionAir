@@ -25,7 +25,7 @@ Each of the follower and a leader drone uses Visual Inertial Odometry taken out 
 
 ## Milestones
 
-- [. ] Collect data and retrain the Yolov5n model to identify m500 drone
+- [x] Collect data and retrain the Yolov5n model to identify m500 drone
 - [ ] Move the model to the drone's gpu, test for inference speed
 - [ ] Collect rosbag while both the follower and leader drones fly for testing sensor fusion
 - [ ] Write the ros node for sensor fusion and test the FPS with the rosbag
