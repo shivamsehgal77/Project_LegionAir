@@ -21,4 +21,14 @@ while the slower moving mother ship and it's flock reorients itself to account f
 
 ## Sensors and Hardware
 
-Each of the follower and a leader drone uses Visual Inertial Odometry taken out from the fisheye camera mounted on the drones for its local position estimate. The follower drones tra
+Each of the follower and a leader drone uses Visual Inertial Odometry taken out from the fisheye camera mounted on the drones for its local position estimate. The follower drones track the leader drone using a hires RGB sensor and a Time of Flight sensor which fuse together using late-sensor fusion to get the position of the target
+
+## Milestones
+
+- [ ] Collect data and retrain the Yolov5n model to identify m500 drone
+- [ ] Move the model to the drone's gpu, test for inference speed
+- [ ] Collect rosbag while both the follower and leader drones fly for testing sensor fusion
+- [ ] Write the ros node for sensor fusion and test the FPS with the rosbag
+- [ ] Convert ROS nodes written in python to C++ for high speed vectorization with Eigen3 library
+- [ ] Make builds for Arm64 linux computer and test the build run while on the ground
+- [ ] In the constructor, debug to ensure that the weight registration happens seamlessly.
