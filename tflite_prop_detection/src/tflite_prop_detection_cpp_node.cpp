@@ -16,7 +16,6 @@
 #include <std_msgs/Bool.h>
 #include <voxl_mpa_to_ros/AiDetection.h>
 #include <pcl_conversions/pcl_conversions.h>
-#include <opencv2/core/eigen.hpp>
 #include <Eigen/Core>
 #include <iostream>
 #include <vector>

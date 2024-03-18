@@ -9,11 +9,9 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   sensor_msgs
   voxl_mpa_to_ros
-  cv_bridge
   image_transport
 )
 
-find_package(OpenCV REQUIRED)
 find_package(PCL REQUIRED)
 find_package(Eigen3 REQUIRED)
 
@@ -24,7 +22,6 @@ catkin_package(
 ## Specify additional locations of header files
 include_directories(
   ${catkin_INCLUDE_DIRS}
-  ${OpenCV_INCLUDE_DIRS}
   ${PCL_INCLUDE_DIRS}
   ${EIGEN3_INCLUDE_DIRS}
 )
@@ -35,7 +32,6 @@ add_executable(tflite_prop_detection_cpp src/tflite_prop_detection_cpp_node.cpp)
 ## Specify libraries to link a library or executable target against
 target_link_libraries(tflite_prop_detection_cpp
   ${catkin_LIBRARIES}
-  ${OpenCV_LIBRARIES}
   ${PCL_LIBRARIES}
 )
 
