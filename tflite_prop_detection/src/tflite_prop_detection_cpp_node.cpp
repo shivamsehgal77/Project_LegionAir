@@ -125,6 +125,7 @@ public:
         }
         points.resize(4, column_count);
         // Print shape of the points after the loop
+        std::cout << "Shape of points after the loop: " << points.rows() << "x" << points.cols() << std::endl;
         Eigen::MatrixXd projected_points;
         // Do the matrix multiplication of K_pcl_ which is 3x4 matrix and points which is 4xN matrix
         projected_points = K_pcl_ * points;
@@ -135,6 +136,10 @@ public:
                 zero_z_count++;
             }
         }
+        // Print the zero_z_count
+        std::cout << "Zero z count: " << zero_z_count << std::endl;
+        // Print shape of the projected_points
+        std::cout << "Shape of projected_points: " << projected_points.rows() << "x" << projected_points.cols() << std::endl;
         // Homogenize the projected_points first two rows by dividing by the third row and store it in projected_points
         projected_points.row(0) = projected_points.row(0).array() / projected_points.row(2).array();
         projected_points.row(1) = projected_points.row(1).array() / projected_points.row(2).array();
@@ -143,8 +148,15 @@ public:
         // Add the image width and height from the projected_points first and second row respectively
         projected_points.row(0) = projected_points.row(0).array() + image_width_ / 2;
         projected_points.row(1) = projected_points.row(1).array() + image_height_ / 2;
+        // Print maximum x value and y value and minimum x value and y value in the overall projected_points
+        std::cout << "Max x: " << projected_points.row(0).maxCoeff() << std::endl;
+        std::cout << "Max y: " << projected_points.row(1).maxCoeff() << std::endl;
+        std::cout << "Min x: " << projected_points.row(0).minCoeff() << std::endl;
+        std::cout << "Min y: " << projected_points.row(1).minCoeff() << std::endl;
         std::vector<Eigen::Vector3d> filtered_points;
-        
+        // Print the bounding box values id wise with print statements
+        std::cout << "Bbox values: " << bbox_x_min_ << " " << bbox_y_min_ << " " << bbox_x_max_ << " " << bbox_y_max_ << std::endl;
+
         // Filter the points that are inside the bounding box by typecasting the projected_points to int and checking if they are inside the bounding box
         int count_filtered_points = 0;
         for (int i = 0; i < projected_points.cols(); ++i) {
@@ -157,6 +169,9 @@ public:
                 }
             }
         }
+        
+        // Print the count of filtered points
+        std::cout << "Count of filtered points: " << count_filtered_points << std::endl;
         // Find max x and y and min x and y in the filtered points
         double max_x = std::numeric_limits<double>::min();
         double max_y = std::numeric_limits<double>::min();
@@ -176,6 +191,11 @@ public:
                 min_y = point(1);
             }
         }
+        // Print the max x and y and min x and y for the filtered points
+        std::cout << "Max x for filtered points: " << max_x << std::endl;
+        std::cout << "Max y for filtered points: " << max_y << std::endl;
+        std::cout << "Min x for filtered points: " << min_x << std::endl;
+        std::cout << "Min y for filtered points: " << min_y << std::endl;
         // Print filtered points size
         std::cout << "Filtered points size: " << filtered_points.size() << std::endl;
         // Compute centroid from the filtered points

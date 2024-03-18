@@ -37,7 +37,7 @@ def publish_static_transforms():
         transform_stamped.transform.translation.x = extrinsic["T_child_wrt_parent"][0]
         transform_stamped.transform.translation.y = extrinsic["T_child_wrt_parent"][1]
         transform_stamped.transform.translation.z = extrinsic["T_child_wrt_parent"][2]
-
+        
         # Negate the rotation (quaternion)
         rot = Rotation.from_euler("xyz", extrinsic["RPY_parent_to_child"], degrees=True)
         quaternion = rot.inv().as_quat()
