@@ -3,7 +3,6 @@ import rospy
 import tf2_ros
 from geometry_msgs.msg import TransformStamped
 from scipy.spatial.transform import Rotation
-import math
 
 
 def publish_static_transforms():

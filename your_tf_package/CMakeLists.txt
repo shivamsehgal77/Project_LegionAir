@@ -8,12 +8,15 @@ find_package(catkin REQUIRED COMPONENTS
 
 catkin_package()
 
+catkin_install_python(PROGRAMS src/tf_publisher.py
+                      DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
 include_directories(
   ${catkin_INCLUDE_DIRS}
 )
 
-add_executable(tf_publisher_cpp_node src/tf_publisher_cpp_node.cpp)
-
-target_link_libraries(tf_publisher_cpp_node
-  ${catkin_LIBRARIES}
+install(
+  DIRECTORY launch/
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
 )
