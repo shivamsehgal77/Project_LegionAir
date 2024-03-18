@@ -35,6 +35,7 @@ class PointCloudTransformer_RGB:
     def transform_point_cloud_rgb(self, input_pcl, source_frame, target_frame):
         try:
             # Attempt to get transform from source_frame to target_frame
+            
             transform_stamped = self.tf_buffer.lookup_transform(target_frame, source_frame, rospy.Time(0))
 
             # Transform the input point cloud
