@@ -10,7 +10,8 @@ find_package(catkin REQUIRED COMPONENTS
   tf2_ros
   tf2_sensor_msgs
 )
-
+find_package(PCL REQUIRED)
+find_package(Eigen3 REQUIRED)
 catkin_python_setup()
 
 catkin_package(
@@ -33,12 +34,14 @@ catkin_install_python(PROGRAMS src/pointcloud_transformer.py
 add_executable(pointcloud_transformer src/pc_transform.cpp)
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(pointcloud_transformer
-  ${catkin_LIBRARIES}
-)
-
 include_directories(
   ${catkin_INCLUDE_DIRS}
+  ${PCL_INCLUDE_DIRS}
+  ${EIGEN3_INCLUDE_DIRS}
+)
+target_link_libraries(pointcloud_transformer
+  ${catkin_LIBRARIES}
+  ${PCL_LIBRARIES}
 )
 
 install(
