@@ -6,7 +6,43 @@
 #include <vector>
 #include <pcl_conversions/pcl_conversions.h>
 #include <Eigen/Core>
+
+#include <sched.h>
+#include <cstring>
+#include <string>
+#include <stdexcept>
+#include <pthread.h>
+#include  <stddef.h>
+#include  <assert.h>
+#include <fstream>
 #include <thread>
+
+enum class CPUS:size_t{
+CPU1,
+CPU2,
+CPU3,
+CPU4,
+CPU5,
+CPU6,
+CPU7,
+CPU8
+};
+
+std::runtime_error getError(std::string msg,int result){
+    return std::runtime_error(msg+" Reason:"+std::string(std::strerror(result)));
+}
+
+
+void applyAffinity(const CPUS affCPU) {
+    cpu_set_t cpuset;
+    CPU_ZERO(&cpuset);
+    const auto aff = static_cast<std::underlying_type<CPUS>::type>(affCPU);
+    CPU_SET(aff, &cpuset);  
+    auto result = pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &cpuset);
+    if (result != 0) {
+        throw getError("Failed to attach affinity",result);
+    }
+}
 
 class PointCloudTransformer {
 public:
@@ -16,13 +52,13 @@ public:
         tf_listener_ = new tf2_ros::TransformListener(*tf_buffer_);
         pc_sub_ = nh.subscribe("/tof_pc", 1, &PointCloudTransformer::pc_callback, this);
         pc_pub_ = nh.advertise<sensor_msgs::PointCloud2>("/rgb_pcl", 1);
+        column_count = 0;
         init_points.resize(3, 38528);
+        transformed_points.resize(3, 38528);
         points1.resize(3, 9632);
         points2.resize(3, 9632);
         points3.resize(3, 9632);
         points4.resize(3, 9632);
-        transformed_points.resize(3, 38528);
-        column_count = 0;
     }
 
     void pc_callback(const sensor_msgs::PointCloud2ConstPtr& pc_msg) {
@@ -61,25 +97,30 @@ public:
             tf_quat[3] = transform_stamped.transform.rotation.w;
             q = Eigen::Quaterniond(tf_quat[3], tf_quat[0], tf_quat[1], tf_quat[2]);
             rotation_matrix = q.toRotationMatrix();
-            // Do the rotation and translation steps for 4 different vectors of points on separate cpu threads
+            // Do the rotation and translation steps for 4 different vectors of points on separate cpu threads and assign enum CPU4, CPU5, CPU6, CPU7
             std::thread t1([&](){
-                for (int i = 0; i < column_count/4; i++) {
+                applyAffinity(CPUS::CPU5);
+                // Apply the rotation and translation to the points by doing column wise matrix multiplication
+                for (size_t i = 0; i < points1.cols(); ++i) {
                     transformed_points.col(i) = rotation_matrix * points1.col(i) + translation_vector;
                 }
             });
             std::thread t2([&](){
-                for (int i = 0; i < column_count/4; i++) {
-                    transformed_points.col(column_count/4 + i) = rotation_matrix * points2.col(i) + translation_vector;
+                applyAffinity(CPUS::CPU6);
+                for (size_t i = 0; i < points2.cols(); ++i) {
+                    transformed_points.col(i) = rotation_matrix * points2.col(i) + translation_vector;
                 }
             });
             std::thread t3([&](){
-                for (int i = 0; i < column_count/4; i++) {
-                    transformed_points.col(column_count/2 + i) = rotation_matrix * points3.col(i) + translation_vector;
+                applyAffinity(CPUS::CPU7);
+                for (size_t i = 0; i < points3.cols(); ++i) {
+                    transformed_points.col(i) = rotation_matrix * points3.col(i) + translation_vector;
                 }
             });
             std::thread t4([&](){
-                for (int i = 0; i < column_count/4; i++) {
-                    transformed_points.col(3*column_count/4 + i) = rotation_matrix * points4.col(i) + translation_vector;
+                applyAffinity(CPUS::CPU8);
+                for (size_t i = 0; i < points4.cols(); ++i) {
+                    transformed_points.col(i) = rotation_matrix * points4.col(i) + translation_vector;
                 }
             });
             t1.join();
