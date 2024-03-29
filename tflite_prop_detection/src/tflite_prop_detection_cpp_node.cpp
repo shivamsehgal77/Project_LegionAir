@@ -110,12 +110,16 @@ public:
         int column_count = 0;
         // Print shape of the points before the loop
         // std::cout << "Shape of points before the loop: " << points.rows() << "x" << points.cols() << std::endl;
-        points *= 1000.0;
-        // Add a row of ones of size cloud.size() to the points matrix
-        points.row(3).setOnes();
+        for (size_t i = 0; i < cloud.size(); ++i) {
+            points(0, column_count) = cloud.points[i].x * 1000;
+            points(1, column_count) = cloud.points[i].y * 1000;
+            points(2, column_count) = cloud.points[i].z * 1000;
+            points(3, column_count) = 1.0;
+            column_count++;
+        }
         points.resize(4, column_count);
         // Print shape of the points after the loop
-        std::cout << "Shape of points after the loop: " << points.rows() << "x" << points.cols() << std::endl;
+        // std::cout << "Shape of points after the loop: " << points.rows() << "x" << points.cols() << std::endl;
         Eigen::MatrixXd projected_points;
         // Do the matrix multiplication of K_pcl_ which is 3x4 matrix and points which is 4xN matrix
         projected_points = K_pcl_ * points;
