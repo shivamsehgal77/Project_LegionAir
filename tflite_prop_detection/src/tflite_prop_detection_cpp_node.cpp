@@ -119,7 +119,7 @@ public:
         }
         points.resize(4, column_count);
         // Print shape of the points after the loop
-        // std::cout << "Shape of points after the loop: " << points.rows() << "x" << points.cols() << std::endl;
+        std::cout << "Shape of points after the loop: " << points.rows() << "x" << points.cols() << std::endl;
         Eigen::MatrixXd projected_points;
         // Do the matrix multiplication of K_pcl_ which is 3x4 matrix and points which is 4xN matrix
         projected_points = K_pcl_ * points;
