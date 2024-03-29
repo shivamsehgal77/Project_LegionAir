@@ -5,7 +5,7 @@
 #include <tf2_sensor_msgs/tf2_sensor_msgs.h>
 #include <vector>
 #include <pcl_conversions/pcl_conversions.h>
-#include <Eigen/Core>
+#include <Eigen/Eigen>
 
 #include <sched.h>
 #include <cstring>
@@ -53,34 +53,48 @@ public:
         pc_sub_ = nh.subscribe("/tof_pc", 1, &PointCloudTransformer::pc_callback, this);
         pc_pub_ = nh.advertise<sensor_msgs::PointCloud2>("/rgb_pcl", 1);
         column_count = 0;
-        init_points.resize(3, 38528);
-        transformed_points.resize(3, 38528);
-        points1.resize(3, 9632);
-        points2.resize(3, 9632);
-        points3.resize(3, 9632);
-        points4.resize(3, 9632);
+        // init_points.resize(3, 38528);
+        // transformed_points.resize(3, 38528);
+        // points1.resize(3, 9632);
+        // points2.resize(3, 9632);
+        // points3.resize(3, 9632);
+        // points4.resize(3, 9632);
     }
 
     void pc_callback(const sensor_msgs::PointCloud2ConstPtr& pc_msg) {
         // Store the pc_msg in a member variable
         column_count = 0;
-
         
+        pcl::PointCloud<pcl::PointXYZ> cloud;
         pcl::fromROSMsg(*pc_msg, cloud);
-        
+        Eigen::MatrixXd init_points(3, cloud.size());
+        // for (size_t i = 0; i < cloud.size(); ++i) {
+        //     init_points(0, column_count) = cloud.points[i].x;
+        //     init_points(1, column_count) = cloud.points[i].y;
+        //     init_points(2, column_count) = cloud.points[i].z;
+        //     column_count++;
+        // }
         for (size_t i = 0; i < cloud.size(); ++i) {
+            if (std::isnan(cloud.points[i].x) || std::isnan(cloud.points[i].y) || std::isnan(cloud.points[i].z)) {
+                continue;
+            } 
+            if (cloud.points[i].z < 0.001 || cloud.points[i].z > 1.35) {
+                continue;
+            }
             init_points(0, column_count) = cloud.points[i].x;
             init_points(1, column_count) = cloud.points[i].y;
             init_points(2, column_count) = cloud.points[i].z;
             column_count++;
         }
+        init_points.resize(3, column_count);
         std::cout << "Size of points: " << init_points.rows() << " x " << init_points.cols() << std::endl;
         // Divide the points eigen matrix of (3, column_count) into 4 different vectors by slicing
         // the matrix in the shape of  (3, column_count/4)
-        points1 = init_points.block(0, 0, 3, column_count/4);
-        points2 = init_points.block(0, column_count/4, 3, column_count/4);
-        points3 = init_points.block(0, column_count/2, 3, column_count/4);
-        points4 = init_points.block(0, 3*column_count/4, 3, column_count/4);
+        Eigen::MatrixXd points1 = init_points.block(0, 0, 3, column_count/4);
+        Eigen::MatrixXd points2 = init_points.block(0, column_count/4, 3, column_count/4);
+        Eigen::MatrixXd points3 = init_points.block(0, column_count/2, 3, column_count/4);
+        Eigen::MatrixXd points4 = init_points.block(0, 3*column_count/4, 3, column_count/4);
+        Eigen::MatrixXd transformed_points(3, column_count);
         sensor_msgs::PointCloud2 transformed_pc;
         // Look up the transform from the world frame to the rgb frame
         geometry_msgs::TransformStamped transform_stamped;
@@ -101,34 +115,28 @@ public:
             std::thread t1([&](){
                 applyAffinity(CPUS::CPU5);
                 // Apply the rotation and translation to the points by doing column wise matrix multiplication
-                for (size_t i = 0; i < points1.cols(); ++i) {
-                    transformed_points.col(i) = rotation_matrix * points1.col(i) + translation_vector;
-                }
+                transformed_points.block(0, 0, 3, column_count/4) = rotation_matrix * points1 + translation_vector.replicate(1, points1.cols());
             });
             std::thread t2([&](){
                 applyAffinity(CPUS::CPU6);
-                for (size_t i = 0; i < points2.cols(); ++i) {
-                    transformed_points.col(i) = rotation_matrix * points2.col(i) + translation_vector;
-                }
+                transformed_points.block(0, column_count/4, 3, column_count/4) = rotation_matrix * points2 + translation_vector.replicate(1, points2.cols());
+                
             });
             std::thread t3([&](){
                 applyAffinity(CPUS::CPU7);
-                for (size_t i = 0; i < points3.cols(); ++i) {
-                    transformed_points.col(i) = rotation_matrix * points3.col(i) + translation_vector;
-                }
+                transformed_points.block(0, column_count/2, 3, column_count/4) = rotation_matrix * points3 + translation_vector.replicate(1, points3.cols());
+                
             });
             std::thread t4([&](){
                 applyAffinity(CPUS::CPU8);
-                for (size_t i = 0; i < points4.cols(); ++i) {
-                    transformed_points.col(i) = rotation_matrix * points4.col(i) + translation_vector;
-                }
+                transformed_points.block(0, 3*column_count/4, 3, column_count/4) = rotation_matrix * points4 + translation_vector.replicate(1, points4.cols());                
             });
             t1.join();
             t2.join();
             t3.join();
             t4.join();
             // Convert the transformed_points to a point cloud message
-            
+            pcl::PointCloud<pcl::PointXYZ> transformed_cloud;
             transformed_cloud.width = transformed_points.cols();
             transformed_cloud.height = 1;
             transformed_cloud.is_dense = false;
@@ -154,21 +162,16 @@ public:
 
 private:
     tf2_ros::Buffer* tf_buffer_;
-    pcl::PointCloud<pcl::PointXYZ> cloud;
+    
     tf2_ros::TransformListener* tf_listener_;
     ros::Subscriber pc_sub_;
     ros::Publisher pc_pub_;
-    Eigen::MatrixXd init_points;
-    Eigen::MatrixXd points1;
-    Eigen::MatrixXd points2;
-    Eigen::MatrixXd points3;
-    Eigen::MatrixXd points4;
-    Eigen::MatrixXd transformed_points;
+    
     double tf_quat[4];
     Eigen::Quaterniond q;
     Eigen::Matrix3d rotation_matrix;
     Eigen::Vector3d translation_vector;
-    pcl::PointCloud<pcl::PointXYZ> transformed_cloud;
+    
     int column_count;
 };
 
