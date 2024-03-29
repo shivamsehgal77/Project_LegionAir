@@ -111,8 +111,8 @@ public:
         // Print shape of the points before the loop
         // std::cout << "Shape of points before the loop: " << points.rows() << "x" << points.cols() << std::endl;
         points *= 1000.0;
-        // Add a row of ones to the points matrix
-        points.row(3).array() = replicate(1, cloud.size());
+        // Add a row of ones of size cloud.size() to the points matrix
+        points.row(3).setOnes();
         points.resize(4, column_count);
         // Print shape of the points after the loop
         std::cout << "Shape of points after the loop: " << points.rows() << "x" << points.cols() << std::endl;
