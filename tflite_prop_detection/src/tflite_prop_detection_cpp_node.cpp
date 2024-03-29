@@ -89,40 +89,30 @@ public:
 
         pcl::PointCloud<pcl::PointXYZ> cloud;
         pcl::fromROSMsg(*msg, cloud);
-        // Store the z values in a vector
-        std::vector<double> z_values;
-        for (size_t i = 0; i < cloud.size(); ++i) {
-            if (std::isnan(cloud.points[i].x) || std::isnan(cloud.points[i].y) || std::isnan(cloud.points[i].z)) {
-                continue;
-            }
-            if (cloud.points[i].z < 0.1 || cloud.points[i].z > 1.5) {
-                continue;
-            }
-            z_values.push_back(cloud.points[i].z);
-        }
-        // Print maximum and minimum z values in the z_values
-        std::cout << "Max z: " << *std::max_element(z_values.begin(), z_values.end()) << std::endl;
-        std::cout << "Min z: " << *std::min_element(z_values.begin(), z_values.end()) << std::endl;
-        // print cloud size
-        std::cout << "Cloud size: " << cloud.size() << std::endl;
+        // // Store the z values in a vector
+        // std::vector<double> z_values;
+        // for (size_t i = 0; i < cloud.size(); ++i) {
+        //     if (std::isnan(cloud.points[i].x) || std::isnan(cloud.points[i].y) || std::isnan(cloud.points[i].z)) {
+        //         continue;
+        //     }
+        //     if (cloud.points[i].z < 0.1 || cloud.points[i].z > 1.5) {
+        //         continue;
+        //     }
+        //     z_values.push_back(cloud.points[i].z);
+        // }
+        // // Print maximum and minimum z values in the z_values
+        // std::cout << "Max z: " << *std::max_element(z_values.begin(), z_values.end()) << std::endl;
+        // std::cout << "Min z: " << *std::min_element(z_values.begin(), z_values.end()) << std::endl;
+        // // print cloud size
+        // std::cout << "Cloud size: " << cloud.size() << std::endl;
         // Define a 4xN Eigen librarymatrix to store the points
         Eigen::MatrixXd points(4, cloud.size());
         int column_count = 0;
         // Print shape of the points before the loop
-        std::cout << "Shape of points before the loop: " << points.rows() << "x" << points.cols() << std::endl;
-        for (size_t i = 0; i < cloud.size(); ++i) {
-            if (std::isnan(cloud.points[i].x) || std::isnan(cloud.points[i].y) || std::isnan(cloud.points[i].z)) {
-                continue;
-            } 
-            if (cloud.points[i].z < 0.00001 || cloud.points[i].z > 1.5) {
-                continue;
-            }
-            points(0, column_count) = cloud.points[i].x * 1000;
-            points(1, column_count) = cloud.points[i].y * 1000;
-            points(2, column_count) = cloud.points[i].z * 1000;
-            points(3, column_count) = 1.0;
-            column_count++;
-        }
+        // std::cout << "Shape of points before the loop: " << points.rows() << "x" << points.cols() << std::endl;
+        points *= 1000.0;
+        // Add a row of ones to the points matrix
+        points.row(3).array() = replicate(1, cloud.size());
         points.resize(4, column_count);
         // Print shape of the points after the loop
         std::cout << "Shape of points after the loop: " << points.rows() << "x" << points.cols() << std::endl;
@@ -130,16 +120,16 @@ public:
         // Do the matrix multiplication of K_pcl_ which is 3x4 matrix and points which is 4xN matrix
         projected_points = K_pcl_ * points;
         // Count the number of z coordinates which are zero in projected_points
-        int zero_z_count = 0;
-        for (int i = 0; i < projected_points.cols(); ++i) {
-            if (projected_points(2, i) == 0) {
-                zero_z_count++;
-            }
-        }
-        // Print the zero_z_count
-        std::cout << "Zero z count: " << zero_z_count << std::endl;
+        // int zero_z_count = 0;
+        // for (int i = 0; i < projected_points.cols(); ++i) {
+        //     if (projected_points(2, i) == 0) {
+        //         zero_z_count++;
+        //     }
+        // }
+        // // Print the zero_z_count
+        // std::cout << "Zero z count: " << zero_z_count << std::endl;
         // Print shape of the projected_points
-        std::cout << "Shape of projected_points: " << projected_points.rows() << "x" << projected_points.cols() << std::endl;
+        // std::cout << "Shape of projected_points: " << projected_points.rows() << "x" << projected_points.cols() << std::endl;
         // Homogenize the projected_points first two rows by dividing by the third row and store it in projected_points
         projected_points.row(0) = projected_points.row(0).array() / projected_points.row(2).array();
         projected_points.row(1) = projected_points.row(1).array() / projected_points.row(2).array();
@@ -149,13 +139,13 @@ public:
         projected_points.row(0) = projected_points.row(0).array() + image_width_ / 2;
         projected_points.row(1) = projected_points.row(1).array() + image_height_ / 2;
         // Print maximum x value and y value and minimum x value and y value in the overall projected_points
-        std::cout << "Max x: " << projected_points.row(0).maxCoeff() << std::endl;
-        std::cout << "Max y: " << projected_points.row(1).maxCoeff() << std::endl;
-        std::cout << "Min x: " << projected_points.row(0).minCoeff() << std::endl;
-        std::cout << "Min y: " << projected_points.row(1).minCoeff() << std::endl;
+        // std::cout << "Max x: " << projected_points.row(0).maxCoeff() << std::endl;
+        // std::cout << "Max y: " << projected_points.row(1).maxCoeff() << std::endl;
+        // std::cout << "Min x: " << projected_points.row(0).minCoeff() << std::endl;
+        // std::cout << "Min y: " << projected_points.row(1).minCoeff() << std::endl;
         std::vector<Eigen::Vector3d> filtered_points;
         // Print the bounding box values id wise with print statements
-        std::cout << "Bbox values: " << bbox_x_min_ << " " << bbox_y_min_ << " " << bbox_x_max_ << " " << bbox_y_max_ << std::endl;
+        // std::cout << "Bbox values: " << bbox_x_min_ << " " << bbox_y_min_ << " " << bbox_x_max_ << " " << bbox_y_max_ << std::endl;
 
         // Filter the points that are inside the bounding box by typecasting the projected_points to int and checking if they are inside the bounding box
         int count_filtered_points = 0;
@@ -170,34 +160,34 @@ public:
             }
         }
         
-        // Print the count of filtered points
-        std::cout << "Count of filtered points: " << count_filtered_points << std::endl;
-        // Find max x and y and min x and y in the filtered points
-        double max_x = std::numeric_limits<double>::min();
-        double max_y = std::numeric_limits<double>::min();
-        double min_x = std::numeric_limits<double>::max();
-        double min_y = std::numeric_limits<double>::max();
-        for (const auto& point : filtered_points) {
-            if (point(0) > max_x) {
-                max_x = point(0);
-            }
-            if (point(0) < min_x) {
-                min_x = point(0);
-            }
-            if (point(1) > max_y) {
-                max_y = point(1);
-            }
-            if (point(1) < min_y) {
-                min_y = point(1);
-            }
-        }
-        // Print the max x and y and min x and y for the filtered points
-        std::cout << "Max x for filtered points: " << max_x << std::endl;
-        std::cout << "Max y for filtered points: " << max_y << std::endl;
-        std::cout << "Min x for filtered points: " << min_x << std::endl;
-        std::cout << "Min y for filtered points: " << min_y << std::endl;
-        // Print filtered points size
-        std::cout << "Filtered points size: " << filtered_points.size() << std::endl;
+        // // Print the count of filtered points
+        // std::cout << "Count of filtered points: " << count_filtered_points << std::endl;
+        // // Find max x and y and min x and y in the filtered points
+        // double max_x = std::numeric_limits<double>::min();
+        // double max_y = std::numeric_limits<double>::min();
+        // double min_x = std::numeric_limits<double>::max();
+        // double min_y = std::numeric_limits<double>::max();
+        // for (const auto& point : filtered_points) {
+        //     if (point(0) > max_x) {
+        //         max_x = point(0);
+        //     }
+        //     if (point(0) < min_x) {
+        //         min_x = point(0);
+        //     }
+        //     if (point(1) > max_y) {
+        //         max_y = point(1);
+        //     }
+        //     if (point(1) < min_y) {
+        //         min_y = point(1);
+        //     }
+        // }
+        // // Print the max x and y and min x and y for the filtered points
+        // std::cout << "Max x for filtered points: " << max_x << std::endl;
+        // std::cout << "Max y for filtered points: " << max_y << std::endl;
+        // std::cout << "Min x for filtered points: " << min_x << std::endl;
+        // std::cout << "Min y for filtered points: " << min_y << std::endl;
+        // // Print filtered points size
+        // std::cout << "Filtered points size: " << filtered_points.size() << std::endl;
         // Compute centroid from the filtered points
         if (!filtered_points.empty()) {
             Eigen::Vector3d centroid(0.0, 0.0, 0.0);
