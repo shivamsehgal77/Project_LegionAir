@@ -103,27 +103,35 @@ public:
             q = Eigen::Quaterniond(tf_quat[3], tf_quat[0], tf_quat[1], tf_quat[2]);
             rotation_matrix = q.toRotationMatrix();
             std::thread t1([this](){
+                applyAffinity(CPUS::CPU1);
                 transformed_points.block(0, 0, 3, points1.cols()) = rotation_matrix * points1 + translation_vector.replicate(1, points1.cols());
             });
             std::thread t2([this](){
+                applyAffinity(CPUS::CPU2);
                 transformed_points.block(0, points1.cols(), 3, points2.cols()) = rotation_matrix * points2 + translation_vector.replicate(1, points2.cols());
             });
             std::thread t3([this](){
+                applyAffinity(CPUS::CPU3);
                 transformed_points.block(0, 2*points1.cols(), 3, points3.cols()) = rotation_matrix * points3 + translation_vector.replicate(1, points3.cols());
             });
             std::thread t4([this](){
+                applyAffinity(CPUS::CPU4);
                 transformed_points.block(0, 3*points1.cols(), 3, points4.cols()) = rotation_matrix * points4 + translation_vector.replicate(1, points4.cols());
             });
             std::thread t5([this](){
+                applyAffinity(CPUS::CPU5);
                 transformed_points.block(0, 4*points1.cols(), 3, points5.cols()) = rotation_matrix * points5 + translation_vector.replicate(1, points5.cols());
             });
             std::thread t6([this](){
+                applyAffinity(CPUS::CPU6);
                 transformed_points.block(0, 5*points1.cols(), 3, points6.cols()) = rotation_matrix * points6 + translation_vector.replicate(1, points6.cols());
             });
             std::thread t7([this](){
+                applyAffinity(CPUS::CPU7);
                 transformed_points.block(0, 6*points1.cols(), 3, points7.cols()) = rotation_matrix * points7 + translation_vector.replicate(1, points7.cols());
             });
             std::thread t8([this](){
+                applyAffinity(CPUS::CPU8);
                 transformed_points.block(0, 7*points1.cols(), 3, points8.cols()) = rotation_matrix * points8 + translation_vector.replicate(1, points8.cols());
             });
             t1.join();
