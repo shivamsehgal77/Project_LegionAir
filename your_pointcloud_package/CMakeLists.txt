@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(your_pointcloud_package)
 
+if(CMAKE_COMPILER_IS_GNUCXX)
+    add_compile_options(-Wstack-usage=2800000)  # Set the desired stack size (e.g., 16384 KB)
+endif()
+
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
