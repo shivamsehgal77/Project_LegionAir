@@ -52,118 +52,133 @@ public:
         tf_listener_ = new tf2_ros::TransformListener(*tf_buffer_);
         pc_sub_ = nh.subscribe("/tof_pc", 1, &PointCloudTransformer::pc_callback, this);
         pc_pub_ = nh.advertise<sensor_msgs::PointCloud2>("/rgb_pcl", 1);
-        transformed_points = Eigen::MatrixXd(3, 38528);
-        init_points = Eigen::MatrixXd(3, 38528);
-        points1 = Eigen::MatrixXd(3, 7500);
-        points2 = Eigen::MatrixXd(3, 7500);
-        points3 = Eigen::MatrixXd(3, 7500);
-        points4 = Eigen::MatrixXd(3, 7500);
-        // points5 = Eigen::MatrixXd(3, 4816);
-        // points6 = Eigen::MatrixXd(3, 4816);
-        // points7 = Eigen::MatrixXd(3, 4816);
-        points8 = Eigen::MatrixXd(3, 8528);
+        // transformed_points = Eigen::MatrixXd::Zero(3, 38528);
+        // init_points = Eigen::MatrixXd::Zero(3, 38528);
+        // points1 = Eigen::MatrixXd::Zero(3, 7500);
+        // points2 = Eigen::MatrixXd::Zero(3, 7500);
+        // points3 = Eigen::MatrixXd::Zero(3, 7500);
+        // points4 = Eigen::MatrixXd::Zero(3, 7500);
+        // points5 = Eigen::MatrixXd::Zero(3, 7500);
+        // points6 = Eigen::MatrixXd::Zero(3, 7500);
+        // points7 = Eigen::MatrixXd::Zero(3, 7500);
+        // points8 = Eigen::MatrixXd::Zero(3, 7500);
         translation_vector = Eigen::Vector3d::Zero();
         tf_quat[4] = {0.0};
         q = Eigen::Quaterniond(0.0, 0.0, 0.0, 0.0);
         rotation_matrix = Eigen::Matrix3d::Zero();
+        filtered_size = 0;
+        remainder = 0;
+        division = 0;
     }
 
     void pc_callback(const sensor_msgs::PointCloud2ConstPtr& pc_msg) {
+        pcl::PointCloud<pcl::PointXYZ> transformed_cloud;
+        pcl::PointCloud<pcl::PointXYZ> init_cloud;
         pcl::fromROSMsg(*pc_msg, init_cloud);
         // Extract the points from the point cloud message
         size_t column_count = init_cloud.size();
+        filtered_size = 0;
+        Eigen::Matrix<double, 3, Eigen::Dynamic> init_points(3, column_count);
         for (size_t i = 0; i < column_count; ++i) {
+            if (std::isnan(init_cloud.points[i].x) || std::isnan(init_cloud.points[i].y) || std::isnan(init_cloud.points[i].z)) {
+                continue;
+            }
+            if (std::isinf(init_cloud.points[i].x) || std::isinf(init_cloud.points[i].y) || std::isinf(init_cloud.points[i].z)) {
+                continue;
+            }
+            if (init_cloud.points[i].x == 0.0 && init_cloud.points[i].y == 0.0 && init_cloud.points[i].z == 0.0) {
+                continue;
+            }
+            if (init_cloud.points[i].z < 0.001) {
+                continue;
+            }
+            if (init_cloud.points[i].z > 2.0) {
+                continue;
+            }
             init_points(0, i) = init_cloud.points[i].x;
             init_points(1, i) = init_cloud.points[i].y;
             init_points(2, i) = init_cloud.points[i].z;
+            filtered_size++;
         }
-        // Split the first 4 block of points into 7500 columns each
-        points1 = init_points.block(0, 0, 3, 7500);
-        points2 = init_points.block(0, 7500, 3, 7500);
-        points3 = init_points.block(0, 15000, 3, 7500);
-        points4 = init_points.block(0, 22500, 3, 7500);
-        // points5 = init_points.block(0, column_count/2, 3, column_count/8);
-        // points6 = init_points.block(0, 5*column_count/8, 3, column_count/8);
-        // points7 = init_points.block(0, 3*column_count/4, 3, column_count/8);
-        points8 = init_points.block(0, 30000, 3, 8528);
-        sensor_msgs::PointCloud2 transformed_pc;
-        // Look up the transform from the world frame to the rgb frame
-        geometry_msgs::TransformStamped transform_stamped;
-        try {
-            transform_stamped = tf_buffer_->lookupTransform("hires", pc_msg->header.frame_id, ros::Time(0));
-            // Use the transform_stamped to transform the point cloud on separate threads
-            // by using the 4 different vectors of points
-            translation_vector[0] = transform_stamped.transform.translation.x;
-            translation_vector[1] = transform_stamped.transform.translation.y;
-            translation_vector[2] = transform_stamped.transform.translation.z;
-            tf_quat[0] = transform_stamped.transform.rotation.x;
-            tf_quat[1] = transform_stamped.transform.rotation.y;
-            tf_quat[2] = transform_stamped.transform.rotation.z;
-            tf_quat[3] = transform_stamped.transform.rotation.w;
-            q = Eigen::Quaterniond(tf_quat[3], tf_quat[0], tf_quat[1], tf_quat[2]);
-            rotation_matrix = q.toRotationMatrix();
-            std::thread t1([this](){
-                applyAffinity(CPUS::CPU1);
-                transformed_points.block(0, 0, 3, points1.cols()) = rotation_matrix * points1 + translation_vector.replicate(1, points1.cols());
-            });
-            std::thread t2([this](){
-                applyAffinity(CPUS::CPU2);
-                transformed_points.block(0, points1.cols(), 3, points2.cols()) = rotation_matrix * points2 + translation_vector.replicate(1, points2.cols());
-            });
-            std::thread t3([this](){
-                applyAffinity(CPUS::CPU3);
-                transformed_points.block(0, 2*points1.cols(), 3, points3.cols()) = rotation_matrix * points3 + translation_vector.replicate(1, points3.cols());
-            });
-            std::thread t4([this](){
-                applyAffinity(CPUS::CPU4);
-                transformed_points.block(0, 3*points1.cols(), 3, points4.cols()) = rotation_matrix * points4 + translation_vector.replicate(1, points4.cols());
-            });
-            // std::thread t5([this](){
-            //     applyAffinity(CPUS::CPU5);
-            //     transformed_points.block(0, 4*points1.cols(), 3, points5.cols()) = rotation_matrix * points5 + translation_vector.replicate(1, points5.cols());
-            // });
-            // std::thread t6([this](){
-            //     applyAffinity(CPUS::CPU6);
-            //     transformed_points.block(0, 5*points1.cols(), 3, points6.cols()) = rotation_matrix * points6 + translation_vector.replicate(1, points6.cols());
-            // });
-            // std::thread t7([this](){
-            //     applyAffinity(CPUS::CPU7);
-            //     transformed_points.block(0, 6*points1.cols(), 3, points7.cols()) = rotation_matrix * points7 + translation_vector.replicate(1, points7.cols());
-            // });
-            std::thread t8([this](){
-                applyAffinity(CPUS::CPU8);
-                transformed_points.block(0, 3*points1.cols()+points4.cols(), 3, points8.cols()) = rotation_matrix * points8 + translation_vector.replicate(1, points8.cols());
-            });
-            t1.join();
-            t2.join();
-            t3.join();
-            t4.join();
-            // t5.join();
-            // t6.join();
-            // t7.join();
-            t8.join();
-            // Create a new point cloud message to store the transformed points
-            transformed_cloud.width = transformed_points.cols();
-            transformed_cloud.height = 1;
-            transformed_cloud.is_dense = false;
-            transformed_cloud.points.resize(transformed_cloud.width * transformed_cloud.height);
-            std::cout << "Size of transformed points: " << transformed_points.rows() << " x " << transformed_points.cols() << std::endl;
-            for (size_t i = 0; i < transformed_cloud.size(); ++i) {
-                transformed_cloud.points[i].x = transformed_points(0, i);
-                transformed_cloud.points[i].y = transformed_points(1, i);
-                transformed_cloud.points[i].z = transformed_points(2, i);
-            }
-            pcl::toROSMsg(transformed_cloud, transformed_pc);
-            transformed_pc.header.frame_id = "hires";                                 
+        init_points.resize(3, filtered_size);
+        if (filtered_size != 0) {
+            division = int(filtered_size/5);
+            remainder = filtered_size % 5;
+            Eigen::MatrixXd points8 = init_points.block(0, 0, 3, division + remainder);
+            Eigen::MatrixXd points1 = init_points.block(0, division + remainder, 3, division);
+            Eigen::MatrixXd points2 = init_points.block(0, 2*division + remainder, 3, division);
+            Eigen::MatrixXd points3 = init_points.block(0, 3*division + remainder, 3, division);
+            Eigen::MatrixXd points4 = init_points.block(0, 4*division + remainder, 3, division);
+            sensor_msgs::PointCloud2 transformed_pc;
+            // Look up the transform from the world frame to the rgb frame
+            geometry_msgs::TransformStamped transform_stamped;
+            Eigen::Matrix<double, 3, Eigen::Dynamic> transformed_points(3, filtered_size);
+            try {
+                transform_stamped = tf_buffer_->lookupTransform("hires", pc_msg->header.frame_id, ros::Time(0));
+                // Use the transform_stamped to transform the point cloud on separate threads
+                // by using the 4 different vectors of points
+                translation_vector[0] = transform_stamped.transform.translation.x;
+                translation_vector[1] = transform_stamped.transform.translation.y;
+                translation_vector[2] = transform_stamped.transform.translation.z;
+                tf_quat[0] = transform_stamped.transform.rotation.x;
+                tf_quat[1] = transform_stamped.transform.rotation.y;
+                tf_quat[2] = transform_stamped.transform.rotation.z;
+                tf_quat[3] = transform_stamped.transform.rotation.w;
+                q = Eigen::Quaterniond(tf_quat[3], tf_quat[0], tf_quat[1], tf_quat[2]);
+                rotation_matrix = q.toRotationMatrix();
+                std::thread t8([&](){
+                    applyAffinity(CPUS::CPU8);
+                    transformed_points.block(0, 0, 3, points8.cols()) = rotation_matrix * points8 + translation_vector.replicate(1, points8.cols());
+                });
+                std::thread t1([&](){
+                    applyAffinity(CPUS::CPU1);
+                    transformed_points.block(0, points8.cols(), 3, points1.cols()) = rotation_matrix * points1 + translation_vector.replicate(1, points1.cols());
+                });
+                std::thread t2([&](){
+                    applyAffinity(CPUS::CPU2);
+                    transformed_points.block(0, points8.cols() + points1.cols(), 3, points2.cols()) = rotation_matrix * points2 + translation_vector.replicate(1, points2.cols());
+                });
+                std::thread t3([&](){
+                    applyAffinity(CPUS::CPU3);
+                    transformed_points.block(0, points8.cols() + points1.cols() + points2.cols(), 3, points3.cols()) = rotation_matrix * points3 + translation_vector.replicate(1, points3.cols());
+                });
+                std::thread t4([&](){
+                    applyAffinity(CPUS::CPU4);
+                    transformed_points.block(0, points8.cols() + points1.cols() + points2.cols() + points3.cols(), 3, points4.cols()) = rotation_matrix * points4 + translation_vector.replicate(1, points4.cols());
+                });
+                t8.join();
+                t1.join();
+                t2.join();
+                t3.join();
+                t4.join();
+                // t5.join();
+                // t6.join();
+                // t7.join();
+                // Create a new point cloud message to store the transformed points
+                transformed_cloud.width = transformed_points.cols();
+                transformed_cloud.height = 1;
+                transformed_cloud.is_dense = false;
+                transformed_cloud.points.resize(transformed_cloud.width * transformed_cloud.height);
+                std::cout << "Size of transformed points: " << transformed_points.rows() << " x " << transformed_points.cols() << std::endl;
+                for (size_t i = 0; i < transformed_cloud.size(); ++i) {
+                    transformed_cloud.points[i].x = transformed_points(0, i);
+                    transformed_cloud.points[i].y = transformed_points(1, i);
+                    transformed_cloud.points[i].z = transformed_points(2, i);
+                }
+                pcl::toROSMsg(transformed_cloud, transformed_pc);
+                transformed_pc.header.frame_id = "hires";                                 
 
-        } catch (tf2::TransformException &ex) {
-            ROS_WARN("Failure, I am here %s\n", ex.what());
-            ROS_WARN("%s", ex.what());
-            return;
+            } catch (tf2::TransformException &ex) {
+                ROS_WARN("Failure, I am here %s\n", ex.what());
+                ROS_WARN("%s", ex.what());
+                return;
+            }
+            // Transform the point cloud by using transform_stamped and the point cloud message
+            // tf2::doTransform(*pc_msg, transformed_pc, transform_stamped); // Use tf2::doTransform instead of tf2_sensor_msgs::doTransform
+            pc_pub_.publish(transformed_pc);
+        } else {
+            ROS_WARN("No valid points in the point cloud message");
         }
-        // Transform the point cloud by using transform_stamped and the point cloud message
-        // tf2::doTransform(*pc_msg, transformed_pc, transform_stamped); // Use tf2::doTransform instead of tf2_sensor_msgs::doTransform
-        pc_pub_.publish(transformed_pc);
     }
 
 private:
@@ -172,22 +187,25 @@ private:
     tf2_ros::TransformListener* tf_listener_;
     ros::Subscriber pc_sub_;
     ros::Publisher pc_pub_;
-    Eigen::MatrixXd init_points;
-    Eigen::MatrixXd transformed_points;
-    Eigen::MatrixXd points1;
-    Eigen::MatrixXd points2;
-    Eigen::MatrixXd points3;
-    Eigen::MatrixXd points4;
+    // Eigen::MatrixXd init_points;
+    // Eigen::MatrixXd transformed_points;
+    // Eigen::MatrixXd points1;
+    // Eigen::MatrixXd points2;
+    // Eigen::MatrixXd points3;
+    // Eigen::MatrixXd points4;
     // Eigen::MatrixXd points5;
     // Eigen::MatrixXd points6;
     // Eigen::MatrixXd points7;
-    Eigen::MatrixXd points8;
+    // Eigen::MatrixXd points8;
     double tf_quat[4];
     Eigen::Quaterniond q;
     Eigen::Matrix3d rotation_matrix;
     Eigen::Vector3d translation_vector;
-    pcl::PointCloud<pcl::PointXYZ> transformed_cloud;
-    pcl::PointCloud<pcl::PointXYZ> init_cloud;
+    // pcl::PointCloud<pcl::PointXYZ> transformed_cloud;
+    // pcl::PointCloud<pcl::PointXYZ> init_cloud;
+    size_t filtered_size;
+    int remainder;
+    int division;
 };
 
 int main(int argc, char** argv) {
