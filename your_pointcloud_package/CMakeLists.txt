@@ -14,6 +14,8 @@ find_package(tf2_ros REQUIRED)
 find_package(tf2_sensor_msgs REQUIRED)
 find_package(PCL REQUIRED)
 find_package(Eigen3 REQUIRED)
+find_package(pcl_conversions REQUIRED)
+find_package(pcl_msgs REQUIRED)
 
 # Uncomment if you have any Python scripts to install
 # ament_python_install_package(${PROJECT_NAME})
@@ -29,6 +31,8 @@ ament_target_dependencies(pointcloud_transformer
   tf2_sensor_msgs
   PCL
   Eigen3
+  pcl_conversions
+  pcl_msgs
 )
 
 # Specify include directories
@@ -39,7 +43,6 @@ include_directories(
 
 # Specify libraries to link against
 target_link_libraries(pointcloud_transformer
-  ${catkin_LIBRARIES}
   ${PCL_LIBRARIES}
 )
 
