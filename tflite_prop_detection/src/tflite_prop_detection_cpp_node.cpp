@@ -33,10 +33,10 @@ public:
                                 image_height_(768) {
 
         sub_tflite_data_ = this->create_subscription<voxl_msgs::msg::Aidetection>(
-            "/tflite_data", 1, std::bind(&TFLitePropDetectionNode::aidectionCallback, this, std::placeholders::_1));
+            "/tflite_data", rclcpp::QoS(rclcpp::KeepLast(1)).best_effort().durability_volatile(), std::bind(&TFLitePropDetectionNode::aidectionCallback, this, std::placeholders::_1));
 
         sub_pcl_ = this->create_subscription<sensor_msgs::msg::PointCloud2>(
-            "/rgb_pcl", 1, std::bind(&TFLitePropDetectionNode::pclCallback, this, std::placeholders::_1));
+            "/rgb_pcl", rclcpp::QoS(rclcpp::KeepLast(1)).best_effort().durability_volatile(), std::bind(&TFLitePropDetectionNode::pclCallback, this, std::placeholders::_1));
 
         pub_object_centroid_ = this->create_publisher<geometry_msgs::msg::PointStamped>(
             "/detections", 15);
@@ -46,6 +46,12 @@ public:
 
         last_detection_time_ = this->now();
         last_pcl_callback_time_ = this->now();
+	K_pcl_ << 756.3252575983485, 0, 0.0, 0,
+                  0, 751.995016895224, 0.0, 0,
+                  0, 0, 1, 0;
+        K_ << 756.3252575983485, 0, 565.8764531779865,
+              0, 751.995016895224, 360.3127057589527,
+              0, 0, 1;
     }
 
 private:

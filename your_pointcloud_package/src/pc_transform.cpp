@@ -53,10 +53,17 @@ public:
     tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
     tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
 
-    pc_sub_ = this->create_subscription<sensor_msgs::msg::PointCloud2>(
-        "/tof_pc", 1, std::bind(&PointCloudTransformer::pc_callback, this, std::placeholders::_1));
+    //rclcpp::SubscriptionOptions subscription_options;
+    //subscription_options.qos_profile.reliability = RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT;
 
-    pc_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("/rgb_pcl", 1);
+    pc_sub_ = this->create_subscription<sensor_msgs::msg::PointCloud2>(
+        "/tof_pc", rclcpp::QoS(rclcpp::KeepLast(1)).best_effort().durability_volatile(), std::bind(&PointCloudTransformer::pc_callback, this, std::placeholders::_1));
+    //pc_sub_ = this->create_subscription<sensor_msgs::msg::PointCloud2>("/tof_pc", 1, std::bind(&PointCloudTransformer::pc_callback, this, std::placeholders::_1), subscription_options);
+    //pc_sub_ = this->create_subscription<sensor_msgs::msg::PointCloud2>(
+    //"/tof_pc", 1, std::bind(&PointCloudTransformer::pc_callback, this, std::placeholders::_1),
+    //rclcpp::SensorDataQoS().reliability(RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT));
+
+    pc_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("/rgb_pcl", rclcpp::SensorDataQoS());
 
     translation_vector = Eigen::Vector3d::Zero();
     q = Eigen::Quaterniond(0.0, 0.0, 0.0, 0.0);
