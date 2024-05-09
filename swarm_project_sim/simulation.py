@@ -98,9 +98,9 @@ plt.savefig(f'frame_0.png')
 plt.show()
 
 
-# random_point = random.randint(0, num_coords-1)
-random_point=0
-how_many=3
+random_point = random.randint(0, num_coords-1)
+#random_point=0
+how_many=6
 combined_list_of_list = []
 choice_for_addremove = int(input("Enter choice add:1 / remove:2? "))
 

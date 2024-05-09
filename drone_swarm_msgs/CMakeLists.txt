@@ -15,11 +15,18 @@ set(msg_files
 "msg/DroneStatus.msg"
 )
 
+set(srv_files
+"srv/DropDrone.srv"
+"srv/SetAnchorAndNeighbours.srv"
+)
+
 rosidl_generate_interfaces(${PROJECT_NAME}
   ${msg_files}
+  ${srv_files}
   DEPENDENCIES std_msgs geometry_msgs
 )
 
+ament_export_dependencies(rosidl_default_runtime)
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   # the following line skips the linter which checks for copyrights

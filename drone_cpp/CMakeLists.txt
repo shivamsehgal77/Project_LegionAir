@@ -16,6 +16,13 @@ find_package(drone_swarm_msgs REQUIRED)
 # C++
 #--------------------------------
 # add include directories
+install(DIRECTORY
+  include
+  config
+  launch
+  DESTINATION share/${PROJECT_NAME}
+)
+
 include_directories(include)
 
 # set executables
