@@ -60,6 +60,7 @@ public:
     descriptor_id.type = rcl_interfaces::msg::ParameterType::PARAMETER_INTEGER;
     this->declare_parameter("id", 0, descriptor_id);
     id_ = this->get_parameter("id").as_int();
+    RCLCPP_INFO_STREAM(this->get_logger(), "Drone ID in pc_transform node: " << id_);
     std::string topic_name_tof = "/uav_" + std::to_string(id_) + "/tof_pc";
     pc_sub_ = this->create_subscription<sensor_msgs::msg::PointCloud2>(
         topic_name_tof, rclcpp::QoS(rclcpp::KeepLast(1)).best_effort().durability_volatile(), std::bind(&PointCloudTransformer::pc_callback, this, std::placeholders::_1));
