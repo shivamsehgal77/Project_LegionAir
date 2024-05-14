@@ -36,7 +36,8 @@ def generate_launch_description():
     pc_transform_node = Node(
         package="your_pointcloud_package", 
         executable="pointcloud_transformer", 
-        output="screen"
+        output="screen",
+        parameters=[tflite_node_params]
     )
 
     obj_det_node = Node(

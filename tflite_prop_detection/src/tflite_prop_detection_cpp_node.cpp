@@ -37,7 +37,7 @@ public:
         rcl_interfaces::msg::ParameterDescriptor descriptor_id;
         descriptor_id.description = "Drone ID";
         descriptor_id.type = rcl_interfaces::msg::ParameterType::PARAMETER_INTEGER;
-        // this->declare_parameter("id", 0, descriptor_id);
+        this->declare_parameter("id", 0, descriptor_id);
         id_ = this->get_parameter("id").as_int();
         std::string topic_name_tflite = "/uav_" + std::to_string(id_) + "/tflite_data";
         std::string topic_name_pcl = "/uav_" + std::to_string(id_) + "/rgb_pcl";
