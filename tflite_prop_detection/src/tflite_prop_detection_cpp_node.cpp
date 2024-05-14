@@ -39,7 +39,7 @@ public:
         descriptor_id.type = rcl_interfaces::msg::ParameterType::PARAMETER_INTEGER;
         this->declare_parameter("id", 0, descriptor_id);
         id_ = this->get_parameter("id").as_int();
-        RCUTILS_LOG_INFO_STREAM_NAMED(get_name(), "Drone ID in tflite_prop_detection node: " << id_);
+        RCLCPP_INFO_STREAM(this->get_logger(), "Drone ID in tflite_prop_detection node: " << id_);
         std::string topic_name_tflite = "/uav_" + std::to_string(id_) + "/tflite_data";
         std::string topic_name_pcl = "/uav_" + std::to_string(id_) + "/rgb_pcl";
         // std::string topic_name_detections = "/drone" + std::to_string(id_) + "/detections";
