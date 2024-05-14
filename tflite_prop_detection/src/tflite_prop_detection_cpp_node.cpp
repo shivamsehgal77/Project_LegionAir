@@ -31,17 +31,19 @@ public:
                                 bbox_y_min_(-std::numeric_limits<int>::max()),
                                 image_width_(1024),
                                 image_height_(768) {
+        node_namespace_ = this->get_namespace();
+        RCLCPP_INFO_STREAM(this->get_logger(), "Namespace in tflite_prop_det: " << node_namespace_);
         //----------------------------------------------
         // Parameters
         //----------------------------------------------
         rcl_interfaces::msg::ParameterDescriptor descriptor_id;
         descriptor_id.description = "Drone ID";
         descriptor_id.type = rcl_interfaces::msg::ParameterType::PARAMETER_INTEGER;
-        this->declare_parameter("id", 0, descriptor_id);
-        id_ = this->get_parameter("id").as_int();
+        this->declare_parameter(node_namespace_+".id", 0, descriptor_id);
+        id_ = this->get_parameter(node_namespace_+".id").as_int();
         RCLCPP_INFO_STREAM(this->get_logger(), "Drone ID in tflite_prop_detection node: " << id_);
-        std::string topic_name_tflite = "/uav_" + std::to_string(id_) + "/tflite_data";
-        std::string topic_name_pcl = "/uav_" + std::to_string(id_) + "/rgb_pcl";
+        std::string topic_name_tflite = node_namespace_ + "/tflite_data";
+        std::string topic_name_pcl = node_namespace_ + "/rgb_pcl";
         // std::string topic_name_detections = "/drone" + std::to_string(id_) + "/detections";
         // std::string topic_name_object_available = "/drone" + std::to_string(id_) + "/object_available";
         sub_tflite_data_ = this->create_subscription<voxl_msgs::msg::Aidetection>(
@@ -179,6 +181,7 @@ private:
     int image_width_;
     int image_height_;
     int id_;
+    std::string node_namespace_;
 };
 
 int main(int argc, char** argv) {
