@@ -31,22 +31,33 @@ public:
                                 bbox_y_min_(-std::numeric_limits<int>::max()),
                                 image_width_(1024),
                                 image_height_(768) {
-
+        //----------------------------------------------
+        // Parameters
+        //----------------------------------------------
+        rcl_interfaces::msg::ParameterDescriptor descriptor_id;
+        descriptor_id.description = "Drone ID";
+        descriptor_id.type = rcl_interfaces::msg::ParameterType::PARAMETER_INTEGER;
+        this->declare_parameter("id", 0, descriptor_id);
+        id_ = this->get_parameter("id").as_int();
+        std::string topic_name_tflite = "/uav_" + std::to_string(id_) + "/tflite_data";
+        std::string topic_name_pcl = "/uav_" + std::to_string(id_) + "/rgb_pcl";
+        // std::string topic_name_detections = "/drone" + std::to_string(id_) + "/detections";
+        // std::string topic_name_object_available = "/drone" + std::to_string(id_) + "/object_available";
         sub_tflite_data_ = this->create_subscription<voxl_msgs::msg::Aidetection>(
-            "/tflite_data", rclcpp::QoS(rclcpp::KeepLast(1)).best_effort().durability_volatile(), std::bind(&TFLitePropDetectionNode::aidectionCallback, this, std::placeholders::_1));
+            topic_name_tflite, rclcpp::QoS(rclcpp::KeepLast(1)).best_effort().durability_volatile(), std::bind(&TFLitePropDetectionNode::aidectionCallback, this, std::placeholders::_1));
 
         sub_pcl_ = this->create_subscription<sensor_msgs::msg::PointCloud2>(
-            "/rgb_pcl", rclcpp::QoS(rclcpp::KeepLast(1)).best_effort().durability_volatile(), std::bind(&TFLitePropDetectionNode::pclCallback, this, std::placeholders::_1));
+            topic_name_pcl, rclcpp::QoS(rclcpp::KeepLast(1)).best_effort().durability_volatile(), std::bind(&TFLitePropDetectionNode::pclCallback, this, std::placeholders::_1));
 
         pub_object_centroid_ = this->create_publisher<geometry_msgs::msg::PointStamped>(
-            "/detections", 15);
+            "detections", 15);
 
         pub_object_available_ = this->create_publisher<std_msgs::msg::Bool>(
-            "/object_available", 15);
+            "object_available", 15);
 
         last_detection_time_ = this->now();
         last_pcl_callback_time_ = this->now();
-	K_pcl_ << 756.3252575983485, 0, 0.0, 0,
+	    K_pcl_ << 756.3252575983485, 0, 0.0, 0,
                   0, 751.995016895224, 0.0, 0,
                   0, 0, 1, 0;
         K_ << 756.3252575983485, 0, 565.8764531779865,
@@ -166,6 +177,7 @@ private:
     Eigen::Matrix3f K_;
     int image_width_;
     int image_height_;
+    int id_;
 };
 
 int main(int argc, char** argv) {
