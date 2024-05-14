@@ -39,8 +39,11 @@ public:
         rcl_interfaces::msg::ParameterDescriptor descriptor_id;
         descriptor_id.description = "Drone ID";
         descriptor_id.type = rcl_interfaces::msg::ParameterType::PARAMETER_INTEGER;
-        this->declare_parameter(node_namespace_+".id", 0, descriptor_id);
-        id_ = this->get_parameter(node_namespace_+".id").as_int();
+        if (!node_namespace_.empty() && node_namespace_[0] == '/') {
+            param_namespace_ = node_namespace_.substr(1);
+        }
+        this->declare_parameter(param_namespace_+".id", 0, descriptor_id);
+        id_ = this->get_parameter(param_namespace_+".id").as_int();
         RCLCPP_INFO_STREAM(this->get_logger(), "Drone ID in tflite_prop_detection node: " << id_);
         std::string topic_name_tflite = node_namespace_ + "/tflite_data";
         std::string topic_name_pcl = node_namespace_ + "/rgb_pcl";
@@ -182,6 +185,7 @@ private:
     int image_height_;
     int id_;
     std::string node_namespace_;
+    std::string param_namespace_;
 };
 
 int main(int argc, char** argv) {

@@ -59,8 +59,11 @@ public:
     rcl_interfaces::msg::ParameterDescriptor descriptor_id;
     descriptor_id.description = "Drone ID";
     descriptor_id.type = rcl_interfaces::msg::ParameterType::PARAMETER_INTEGER;
-    this->declare_parameter(node_namespace_+".id", 0, descriptor_id);
-    id_ = this->get_parameter(node_namespace_+".id").as_int();
+    if (!node_namespace_.empty() && node_namespace_[0] == '/') {
+      param_namespace_ = node_namespace_.substr(1);
+    }
+    this->declare_parameter(param_namespace_+".id", 0, descriptor_id);
+    id_ = this->get_parameter(param_namespace_+".id").as_int();
     RCLCPP_INFO_STREAM(this->get_logger(), "Drone ID in pc_transform node: " << id_);
     std::string topic_name_tof = node_namespace_ + "/tof_pc";
     pc_sub_ = this->create_subscription<sensor_msgs::msg::PointCloud2>(
@@ -129,6 +132,7 @@ private:
   int division;
   int id_;
   std::string node_namespace_;
+  std::string param_namespace_;
 };
 
 int main(int argc, char** argv) {
