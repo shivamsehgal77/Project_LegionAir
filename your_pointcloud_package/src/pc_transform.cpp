@@ -52,7 +52,8 @@ public:
   PointCloudTransformer() : Node("pc_transformer") {
     tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
     tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
-
+    std::string namespace = this->get_namespace();
+    RCLCPP_INFO_STREAM(this->get_logger(), "Namespace: " << namespace);
     //rclcpp::SubscriptionOptions subscription_options;
     //subscription_options.qos_profile.reliability = RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT;
     rcl_interfaces::msg::ParameterDescriptor descriptor_id;
