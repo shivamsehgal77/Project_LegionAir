@@ -61,6 +61,7 @@ public:
     descriptor_id.type = rcl_interfaces::msg::ParameterType::PARAMETER_INTEGER;
     if (!node_namespace_.empty() && node_namespace_[0] == '/') {
       param_namespace_ = node_namespace_.substr(1);
+      RCLCPP_INFO_STREAM(this->get_logger(), "Parameter namespace in pc_transform: " << param_namespace_);
     }
     this->declare_parameter(param_namespace_+".id", 0, descriptor_id);
     id_ = this->get_parameter(param_namespace_+".id").as_int();
