@@ -16,7 +16,7 @@ from ament_index_python.packages import get_package_share_path
 
 def generate_launch_description():
     tflite_node_params = PathJoinSubstitution(
-        [FindPackageShare("tflite_prop_detection"), "config", "ns_conf.yaml"]
+        [FindPackageShare('tflite_prop_detection'), "config", "ns_conf.yaml"]
     )
     pack_path = os.path.join(get_package_share_path('tflite_prop_detection'), "config", "ns_conf.yaml")
     print(pack_path)
@@ -30,6 +30,7 @@ def generate_launch_description():
     tf_static_node = Node(
         package="your_tf_package",
         executable="tf_publisher_cpp",
+        namespace='uav_'+str(id_value),
         output="screen",
     )
 
@@ -37,6 +38,7 @@ def generate_launch_description():
         package="your_pointcloud_package", 
         executable="pointcloud_transformer", 
         output="screen",
+        namespace='uav_'+str(id_value),
         parameters=[tflite_node_params]
     )
 
@@ -44,19 +46,20 @@ def generate_launch_description():
         package="tflite_prop_detection", 
         executable="tflite_prop_detection_cpp", 
         output="screen",
+        namespace='uav_'+str(id_value),
         parameters=[tflite_node_params]
     )
-    tf_static_node_with_namespace = GroupAction( 
-        actions = [PushRosNamespace('uav_' + str(id_value)), tf_static_node]
-    )
-    pc_transform_node_with_namespace = GroupAction( 
-        actions = [PushRosNamespace('uav_' + str(id_value)), pc_transform_node]
-    )
-    obj_det_node_with_namespace = GroupAction( 
-        actions = [PushRosNamespace('uav_' + str(id_value)), obj_det_node]
-    )
+    # tf_static_node_with_namespace = GroupAction( 
+    #     actions = [PushRosNamespace('uav_' + str(id_value)), tf_static_node]
+    # )
+    # pc_transform_node_with_namespace = GroupAction( 
+    #     actions = [PushRosNamespace('uav_' + str(id_value)), pc_transform_node]
+    # )
+    # obj_det_node_with_namespace = GroupAction( 
+    #     actions = [PushRosNamespace('uav_' + str(id_value)), obj_det_node]
+    # )
     
-    ld.add_action(tf_static_node_with_namespace)
-    ld.add_action(pc_transform_node_with_namespace)
-    ld.add_action(obj_det_node_with_namespace)
+    ld.add_action(tf_static_node)
+    ld.add_action(pc_transform_node)
+    ld.add_action(obj_det_node)
     return ld
