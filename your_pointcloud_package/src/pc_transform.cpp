@@ -54,18 +54,16 @@ public:
     tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
     node_namespace_ = this->get_namespace();
     RCLCPP_INFO_STREAM(this->get_logger(), "Namespace in pc_transform: " << node_namespace_);
-    //rclcpp::SubscriptionOptions subscription_options;
-    //subscription_options.qos_profile.reliability = RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT;
-    rcl_interfaces::msg::ParameterDescriptor descriptor_id;
-    descriptor_id.description = "Drone ID";
-    descriptor_id.type = rcl_interfaces::msg::ParameterType::PARAMETER_INTEGER;
-    if (!node_namespace_.empty() && node_namespace_[0] == '/') {
-      param_namespace_ = node_namespace_.substr(1);
-      RCLCPP_INFO_STREAM(this->get_logger(), "Parameter namespace in pc_transform: " << param_namespace_);
-    }
-    this->declare_parameter(param_namespace_+".id", 0, descriptor_id);
-    id_ = this->get_parameter(param_namespace_+".id").as_int();
-    RCLCPP_INFO_STREAM(this->get_logger(), "Drone ID in pc_transform node: " << id_);
+    // rcl_interfaces::msg::ParameterDescriptor descriptor_id;
+    // descriptor_id.description = "Drone ID";
+    // descriptor_id.type = rcl_interfaces::msg::ParameterType::PARAMETER_INTEGER;
+    // if (!node_namespace_.empty() && node_namespace_[0] == '/') {
+    //   param_namespace_ = node_namespace_.substr(1);
+    //   RCLCPP_INFO_STREAM(this->get_logger(), "Parameter namespace in pc_transform: " << param_namespace_);
+    // }
+    // this->declare_parameter(param_namespace_+".id", 0, descriptor_id);
+    // id_ = this->get_parameter(param_namespace_+".id").as_int();
+    // RCLCPP_INFO_STREAM(this->get_logger(), "Drone ID in pc_transform node: " << id_);
     std::string topic_name_tof = node_namespace_ + "/tof_pc";
     pc_sub_ = this->create_subscription<sensor_msgs::msg::PointCloud2>(
         topic_name_tof, rclcpp::QoS(rclcpp::KeepLast(1)).best_effort().durability_volatile(), std::bind(&PointCloudTransformer::pc_callback, this, std::placeholders::_1));

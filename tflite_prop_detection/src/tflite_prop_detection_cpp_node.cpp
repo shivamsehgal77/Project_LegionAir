@@ -36,19 +36,17 @@ public:
         //----------------------------------------------
         // Parameters
         //----------------------------------------------
-        rcl_interfaces::msg::ParameterDescriptor descriptor_id;
-        descriptor_id.description = "Drone ID";
-        descriptor_id.type = rcl_interfaces::msg::ParameterType::PARAMETER_INTEGER;
-        if (!node_namespace_.empty() && node_namespace_[0] == '/') {
-            param_namespace_ = node_namespace_.substr(1);
-        }
-        this->declare_parameter(param_namespace_+".id", 0, descriptor_id);
-        id_ = this->get_parameter(param_namespace_+".id").as_int();
-        RCLCPP_INFO_STREAM(this->get_logger(), "Drone ID in tflite_prop_detection node: " << id_);
+        // rcl_interfaces::msg::ParameterDescriptor descriptor_id;
+        // descriptor_id.description = "Drone ID";
+        // descriptor_id.type = rcl_interfaces::msg::ParameterType::PARAMETER_INTEGER;
+        // if (!node_namespace_.empty() && node_namespace_[0] == '/') {
+        //     param_namespace_ = node_namespace_.substr(1);
+        // }
+        // this->declare_parameter(param_namespace_+".id", 0, descriptor_id);
+        // id_ = this->get_parameter(param_namespace_+".id").as_int();
+        // RCLCPP_INFO_STREAM(this->get_logger(), "Drone ID in tflite_prop_detection node: " << id_);
         std::string topic_name_tflite = node_namespace_ + "/tflite_data";
         std::string topic_name_pcl = node_namespace_ + "/rgb_pcl";
-        // std::string topic_name_detections = "/drone" + std::to_string(id_) + "/detections";
-        // std::string topic_name_object_available = "/drone" + std::to_string(id_) + "/object_available";
         sub_tflite_data_ = this->create_subscription<voxl_msgs::msg::Aidetection>(
             topic_name_tflite, rclcpp::QoS(rclcpp::KeepLast(1)).best_effort().durability_volatile(), std::bind(&TFLitePropDetectionNode::aidectionCallback, this, std::placeholders::_1));
 
