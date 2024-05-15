@@ -25,6 +25,9 @@ def generate_launch_description():
     node_params_3 = PathJoinSubstitution(
         [FindPackageShare("drone_cpp"), "config", "params_3.yaml"]
     )
+    node_params_4 = PathJoinSubstitution(
+        [FindPackageShare("drone_cpp"), "config", "params_4.yaml"]
+    )
     
     drone_node_cpp_1=Node(
             package='drone_cpp',
@@ -51,11 +54,20 @@ def generate_launch_description():
             
     )
     print("Drone three is created")
+    drone_node_cpp_4=Node(
+            package='drone_cpp',
+            name='drone_three',
+            executable='drone_node_cpp',
+            parameters=[node_params_4],
+            
+    )
+    print("Drone three is created")
     
     # Add the actions to the launch description
     # ld.add_action(cmd_line_parameter)
     ld.add_action(drone_node_cpp_1)
     ld.add_action(drone_node_cpp_2)
     ld.add_action(drone_node_cpp_3)
+    ld.add_action(drone_node_cpp_4)
   
     return ld

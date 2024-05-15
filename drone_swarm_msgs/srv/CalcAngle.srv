@@ -1,0 +1,5 @@
+# Request
+int32 target_angle # target angle
+---
+# Response
+bool received # yes/ no

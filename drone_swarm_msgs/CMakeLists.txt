@@ -18,6 +18,7 @@ set(msg_files
 set(srv_files
 "srv/DropDrone.srv"
 "srv/SetAnchorAndNeighbours.srv"
+"srv/CalcAngle.srv"
 )
 
 rosidl_generate_interfaces(${PROJECT_NAME}

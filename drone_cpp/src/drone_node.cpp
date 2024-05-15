@@ -8,20 +8,28 @@ void DroneNode::handle_drop_done_request(///< Handle the request from the servic
     const std::shared_ptr<DropDroneSrv::Request> request,
     const std::shared_ptr<DropDroneSrv::Response> response)
 {   
+    
+    
     mutex_group_ = this->create_callback_group(
         rclcpp::CallbackGroupType::MutuallyExclusive);
+
+    auto right_neighbour_request = std::make_shared<SetAnchorAndNeighbours::Request>();///< Create a request for the right neighbor.
+    right_neighbour_request->anchor = false;///< Set the anchor status to false.
+    right_neighbour_request->new_neighbour = neighbour_left_;///< Set the neighbor id.
+    right_neighbour_request->which_side = false;///< Set the side of the neighbor.
+    std::string client_right = "set_anchor_and_neighbours" + std::to_string(neighbour_right_);
+    auto sync_client_right= this->create_client<SetAnchorAndNeighbours>(
+        client_right,               // service name
+        rmw_qos_profile_services_default,  // qos profile
+        mutex_group_                       // callback group
+    );
+    auto result_future_right = sync_client_right->async_send_request(right_neighbour_request);
+
     auto left_neighbour_request = std::make_shared<SetAnchorAndNeighbours::Request>();///< Create a request for the left neighbor.
     left_neighbour_request->anchor = true;///< Set the anchor status to false.
     left_neighbour_request->new_neighbour = neighbour_right_;///< Set the neighbor id.
     left_neighbour_request->which_side = true;///< Set the side of the neighbor.
     std::string client_left = "set_anchor_and_neighbours" + std::to_string(neighbour_left_);
-    // auto client_left_ = this->create_client<SetAnchorAndNeighbours>(client_left);///< Create a client for the left neighbor.
-    // auto result_left = client_left_->async_send_request(left_neighbour_request);///< Send the request to the left neighbor.
-    // result_left.wait();///< Wait for the result.
-    // bool result_left_bool = result_left.get()->done;///< Get the result.
-    // auto future_result = client_left_->async_send_request(
-    //   left_neighbour_request, std::bind(&DroneNode::set_anchor_and_neighbours_response_callback, this,
-    //                       std::placeholders::_1));
 
     auto sync_client_left= this->create_client<SetAnchorAndNeighbours>(
         client_left,               // service name
@@ -31,25 +39,11 @@ void DroneNode::handle_drop_done_request(///< Handle the request from the servic
     auto result_future_left = sync_client_left->async_send_request(left_neighbour_request);
 
 
-    auto right_neighbour_request = std::make_shared<SetAnchorAndNeighbours::Request>();///< Create a request for the right neighbor.
-    right_neighbour_request->anchor = false;///< Set the anchor status to false.
-    right_neighbour_request->new_neighbour = neighbour_left_;///< Set the neighbor id.
-    right_neighbour_request->which_side = false;///< Set the side of the neighbor.
-    std::string client_right = "set_anchor_and_neighbours" + std::to_string(neighbour_right_);
-    // auto client_right_ = this->create_client<SetAnchorAndNeighbours>(client_right);///< Create a client for the right neighbor.
-    // auto result_right = client_right_->async_send_request(right_neighbour_request);///< Send the request to the right neighbor.
-    // result_right.wait();///< Wait for the result.
-    auto sync_client_right= this->create_client<SetAnchorAndNeighbours>(
-        client_right,               // service name
-        rmw_qos_profile_services_default,  // qos profile
-        mutex_group_                       // callback group
-    );
-    auto result_future_right = sync_client_right->async_send_request(right_neighbour_request);
+    
 
     auto req= request->drop;///< Get the request.
     response->dropped = true;///< Set the response to true.
     RCLCPP_INFO(this->get_logger(), "Drone %d dropped", id_);///< Log the drone drop.
-    //rclcpp::shutdown();///< Shutdown the ROS 2 system.
 }
 
 void DroneNode::handle_anchor_and_neighbours_request(///< Handle the request from the service.
@@ -62,7 +56,8 @@ void DroneNode::handle_anchor_and_neighbours_request(///< Handle the request fro
 
     RCLCPP_INFO(this->get_logger(), "Previous state");///< Log the anchor and neighbors set.
     RCLCPP_INFO(this->get_logger(), "Drone %d anchor %d neighbour_left %d neighbour_right %d", id_, anchor_, neighbour_left_, neighbour_right_);
-
+    mutex_group_3_ = this->create_callback_group(
+        rclcpp::CallbackGroupType::MutuallyExclusive);
     if(anchor_bool)///< If the drone is an anchor.
     {
         anchor_ = true;///< Set the anchor status to true.
@@ -77,6 +72,20 @@ void DroneNode::handle_anchor_and_neighbours_request(///< Handle the request fro
         RCLCPP_INFO(this->get_logger(), "New state");///< Log the anchor and neighbors set.
         RCLCPP_INFO(this->get_logger(), "Drone %d anchor %d neighbour_left %d neighbour_right %d", id_, anchor_, neighbour_left_, neighbour_right_);
 
+        auto left_neighbour_request = std::make_shared<CalcAngle::Request>();///< Create a request for the left neighbor.
+        left_neighbour_request-> target_angle = 0;///< Set the angle.
+        std::string service_name_calc_angle= "calc_angle_" + std::to_string(neighbour_left_);
+
+        // auto sync_client_left= this->create_client<CalcAngle>(
+        //     service_name_calc_angle,               // service name
+        //     rmw_qos_profile_services_default,  // qos profile
+        //     mutex_group_3_                       // callback group
+        // );
+        auto sync_client_left = this->create_client<SetAnchorAndNeighbours>(service_name_calc_angle);///< Create a client for the left neighbor.
+    // auto result_left = client_left_->async_send_request(left_neighbour_request);///< Send the request to the left neighbor.
+        auto result_future_left = sync_client_left->async_send_request(left_neighbour_request);
+        RCLCPP_INFO(this->get_logger(), "left neigbour %d", neighbour_left_);///< Log the received angle.
+        RCLCPP_INFO(this->get_logger(), "Start calc at anchor");///< Log the received angle.
     }
     else///< If the drone is not an anchor.
     {
@@ -94,6 +103,38 @@ void DroneNode::handle_anchor_and_neighbours_request(///< Handle the request fro
     
     response->done = true;///< Set the response to true.
     // RCLCPP_INFO(this->get_logger(), "Drone %d set anchor and neighbours", id_);///< Log the anchor and neighbors set.
+}
+
+void DroneNode::handle_calc_angle(///< Handle the request from the service.
+    const std::shared_ptr<CalcAngle::Request> request,
+    const std::shared_ptr<CalcAngle::Response> response)
+{
+    mutex_group_2_ = this->create_callback_group(
+        rclcpp::CallbackGroupType::MutuallyExclusive);
+    if(!anchor_)
+    {
+    auto left_neighbour_request = std::make_shared<CalcAngle::Request>();///< Create a request for the left neighbor.
+    left_neighbour_request-> target_angle = 0;///< Set the angle.
+    std::string service_name_calc_angle= "calc_angle_" + std::to_string(neighbour_left_);
+
+    // auto sync_client_left= this->create_client<CalcAngle>(
+    //     service_name_calc_angle,               // service name
+    //     rmw_qos_profile_services_default,  // qos profile
+    //     mutex_group_2_                      // callback group
+    // );
+    auto sync_client_left = this->create_client<SetAnchorAndNeighbours>(service_name_calc_angle);///< Create a client for the left neighbor.
+    // auto result_left = client_left_->async_send_request(left_neighbour_request);///< Send the request to the left neighbor.
+    auto result_future_left = sync_client_left->async_send_request(left_neighbour_request);
+    // auto result_future_left = sync_client_left->async_send_request(left_neighbour_request);
+    response->received = true;///< Set the response to true.
+    RCLCPP_INFO(this->get_logger(), "Drone %d received angle", id_);///< Log the received angle.
+    }
+    else
+    {
+        RCLCPP_INFO(this->get_logger(), "End calc at Anchor");///< Log the received angle.
+
+    }
+    
 }
 
 void DroneNode::set_anchor_and_neighbours_response_callback(
