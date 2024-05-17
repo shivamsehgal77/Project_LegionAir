@@ -40,6 +40,8 @@ class DroneNode : public rclcpp::Node
         this->declare_parameter("phase_angle", 0.0, descriptor_phase_angle);
         phase_angel_ = this->get_parameter("phase_angle").as_double();
 
+        target_phase_angel_ = phase_angel_;
+
         rcl_interfaces::msg::ParameterDescriptor descriptor_radius;
         descriptor_radius.description = "Radius";
         descriptor_radius.type = rcl_interfaces::msg::ParameterType::PARAMETER_DOUBLE;
@@ -127,6 +129,7 @@ class DroneNode : public rclcpp::Node
     bool anchor_;
     int id_ ;
     double phase_angel_ ; /// deg
+    double target_phase_angel_ ; /// deg
     double radius_ ; /// m
     int neighbour_left_ ;
     int neighbour_right_ ;

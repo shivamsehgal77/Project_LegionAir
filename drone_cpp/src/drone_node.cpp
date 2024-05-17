@@ -1,6 +1,7 @@
 #include <rclcpp/rclcpp.hpp> ///< Include the ROS 2 library.
 #include "drone_cpp/drone_node.hpp"///< Include the DroneNode class.
 #include <chrono>
+#include <cmath>
 
 using namespace std::chrono_literals;
 
@@ -23,7 +24,8 @@ void DroneNode::handle_drop_done_request(///< Handle the request from the servic
         rmw_qos_profile_services_default,  // qos profile
         mutex_group_                       // callback group
     );
-    auto result_future_right = sync_client_right->async_send_request(right_neighbour_request);
+    auto result_future_right = sync_client_right->async_send_request(right_neighbour_request,
+    std::bind(&DroneNode::set_anchor_and_neighbours_response_callback, this, std::placeholders::_1));
 
     auto left_neighbour_request = std::make_shared<SetAnchorAndNeighbours::Request>();///< Create a request for the left neighbor.
     left_neighbour_request->anchor = true;///< Set the anchor status to false.
@@ -36,7 +38,8 @@ void DroneNode::handle_drop_done_request(///< Handle the request from the servic
         rmw_qos_profile_services_default,  // qos profile
         mutex_group_                       // callback group
     );
-    auto result_future_left = sync_client_left->async_send_request(left_neighbour_request);
+    auto result_future_left = sync_client_left->async_send_request(left_neighbour_request,
+    std::bind(&DroneNode::set_anchor_and_neighbours_response_callback, this, std::placeholders::_1));
 
 
     
@@ -72,20 +75,42 @@ void DroneNode::handle_anchor_and_neighbours_request(///< Handle the request fro
         RCLCPP_INFO(this->get_logger(), "New state");///< Log the anchor and neighbors set.
         RCLCPP_INFO(this->get_logger(), "Drone %d anchor %d neighbour_left %d neighbour_right %d", id_, anchor_, neighbour_left_, neighbour_right_);
 
-        auto left_neighbour_request = std::make_shared<CalcAngle::Request>();///< Create a request for the left neighbor.
-        left_neighbour_request-> target_angle = 0;///< Set the angle.
-        std::string service_name_calc_angle= "calc_angle_" + std::to_string(neighbour_left_);
 
-        // auto sync_client_left= this->create_client<CalcAngle>(
-        //     service_name_calc_angle,               // service name
-        //     rmw_qos_profile_services_default,  // qos profile
-        //     mutex_group_3_                       // callback group
-        // );
-        auto sync_client_left = this->create_client<SetAnchorAndNeighbours>(service_name_calc_angle);///< Create a client for the left neighbor.
-    // auto result_left = client_left_->async_send_request(left_neighbour_request);///< Send the request to the left neighbor.
-        auto result_future_left = sync_client_left->async_send_request(left_neighbour_request);
-        RCLCPP_INFO(this->get_logger(), "left neigbour %d", neighbour_left_);///< Log the received angle.
-        RCLCPP_INFO(this->get_logger(), "Start calc at anchor");///< Log the received angle.
+        // math
+        int n=4;
+        double inc= 360.0/(n-1);
+        double targ;
+        if((phase_angel_ +inc)>360)
+        {
+            targ = phase_angel_ + inc - 360;
+        }
+        else
+        {
+            targ = phase_angel_ + inc;
+        }
+        target_phase_angel_ = phase_angel_;
+        RCLCPP_INFO(this->get_logger(), "Increment{%f}",inc);///< Log the received angle.
+        RCLCPP_INFO(this->get_logger(), "Target angle{%f}",targ);///< Log the received angle.
+
+        //
+        auto right_neighbour_request = std::make_shared<CalcAngle::Request>();///< Create a request for the left neighbor.
+        right_neighbour_request-> target_angle = targ;///< Set the angle.
+        right_neighbour_request-> increment = inc;///< Set the radius.
+        std::string service_name_calc_angle= "calc_angle_" + std::to_string(neighbour_right_);
+
+        auto sync_client_right= this->create_client<CalcAngle>(
+             service_name_calc_angle,               // service name
+             rmw_qos_profile_services_default,  // qos profile
+             mutex_group_3_                       // callback group
+         );
+        auto result_future_right = sync_client_right->async_send_request(right_neighbour_request,std::bind(&DroneNode::calc_angle_response_callback, this, std::placeholders::_1));
+        RCLCPP_INFO(this->get_logger(), "Calc angle service request sent from anchor{%d} to neighbour right{%d}",id_, neighbour_right_);///< Log the received angle.
+        
+    //     auto sync_client_left = this->create_client<SetAnchorAndNeighbours>(service_name_calc_angle);///< Create a client for the left neighbor.
+    // // auto result_left = client_left_->async_send_request(left_neighbour_request);///< Send the request to the left neighbor.
+    //     auto result_future_left = sync_client_left->async_send_request(left_neighbour_request);
+    //     RCLCPP_INFO(this->get_logger(), "left neigbour %d", neighbour_left_);///< Log the received angle.
+    //     RCLCPP_INFO(this->get_logger(), "Start calc at anchor");///< Log the received angle.
     }
     else///< If the drone is not an anchor.
     {
@@ -113,26 +138,42 @@ void DroneNode::handle_calc_angle(///< Handle the request from the service.
         rclcpp::CallbackGroupType::MutuallyExclusive);
     if(!anchor_)
     {
-    auto left_neighbour_request = std::make_shared<CalcAngle::Request>();///< Create a request for the left neighbor.
-    left_neighbour_request-> target_angle = 0;///< Set the angle.
-    std::string service_name_calc_angle= "calc_angle_" + std::to_string(neighbour_left_);
+        double target_angle = request->target_angle;///< Get the target angle.
+        double inc = request->increment;///< Get the increment.
+        target_phase_angel_ = target_angle;///< Set the target angle.
+        double targ;
+        if((target_angle +inc)>360)
+        {
+            targ = target_angle + inc - 360;
+        }
+        else
+        {
+            targ = target_angle + inc;
+        }
 
-    // auto sync_client_left= this->create_client<CalcAngle>(
-    //     service_name_calc_angle,               // service name
-    //     rmw_qos_profile_services_default,  // qos profile
-    //     mutex_group_2_                      // callback group
-    // );
-    auto sync_client_left = this->create_client<SetAnchorAndNeighbours>(service_name_calc_angle);///< Create a client for the left neighbor.
-    // auto result_left = client_left_->async_send_request(left_neighbour_request);///< Send the request to the left neighbor.
-    auto result_future_left = sync_client_left->async_send_request(left_neighbour_request);
-    // auto result_future_left = sync_client_left->async_send_request(left_neighbour_request);
+
+        RCLCPP_INFO(this->get_logger(), "Angle has been calculated %d", id_);///< Log the received angle.
+        RCLCPP_INFO(this->get_logger(), "Drone %d target angle %f", id_, target_angle);///< Log the received angle.
+        auto right_neighbour_request = std::make_shared<CalcAngle::Request>();///< Create a request for the left neighbor.
+        right_neighbour_request-> target_angle = targ;///< Set the angle.
+        right_neighbour_request-> increment = inc;///< Set the radius.
+        std::string service_name_calc_angle= "calc_angle_" + std::to_string(neighbour_right_);
+
+        auto sync_client_right= this->create_client<CalcAngle>(
+             service_name_calc_angle,               // service name
+             rmw_qos_profile_services_default,  // qos profile
+             mutex_group_2_                       // callback group
+         );
+        auto result_future_right = sync_client_right->async_send_request(right_neighbour_request,std::bind(&DroneNode::calc_angle_response_callback, this, std::placeholders::_1));
+        
+        RCLCPP_INFO(this->get_logger(), "Calc angle request sent %d", neighbour_right_);///< Log the received angle.
     response->received = true;///< Set the response to true.
-    RCLCPP_INFO(this->get_logger(), "Drone %d received angle", id_);///< Log the received angle.
+    // RCLCPP_INFO(this->get_logger(), "Drone %d received angle", id_);///< Log the received angle.
     }
     else
     {
-        RCLCPP_INFO(this->get_logger(), "End calc at Anchor");///< Log the received angle.
-
+        RCLCPP_INFO(this->get_logger(), "End calc at Anchor{%d}",id_);///< Log the received angle.
+        RCLCPP_INFO(this->get_logger(), "Drone %d target angle %f", id_, target_phase_angel_);///< Log the received angle.
     }
     
 }
@@ -142,6 +183,15 @@ void DroneNode::set_anchor_and_neighbours_response_callback(
   auto status = future.wait_for(1s);
   if (status == std::future_status::ready) {
     auto result = static_cast<int>(future.get()->done);
+    // print_profile(result);
+  }
+}
+
+void DroneNode::calc_angle_response_callback(
+    rclcpp::Client<CalcAngle>::SharedFuture future) {
+  auto status = future.wait_for(1s);
+  if (status == std::future_status::ready) {
+    auto result = static_cast<int>(future.get()->received);
     // print_profile(result);
   }
 }

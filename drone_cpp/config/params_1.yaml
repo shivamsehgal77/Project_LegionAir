@@ -1,9 +1,9 @@
 # Define parameters for the house thermostat
-drone_zero:  # Node name
+drone_one:  # Node name
   ros__parameters:
-    id: 0
+    id: 1
     anchor: false
-    phase_angle: 0.0
+    phase_angle: 90.0
     radius: 1.0
-    neighbour_left: 3
-    neighbour_right: 1
+    neighbour_left: 0
+    neighbour_right: 2
