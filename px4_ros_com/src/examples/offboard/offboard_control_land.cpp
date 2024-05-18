@@ -82,13 +82,15 @@ public:
 		offboard_control_mode_publisher_ = this->create_publisher<OffboardControlMode>(px4_namespace+"/fmu/in/offboard_control_mode", qos);
 		trajectory_setpoint_publisher_ = this->create_publisher<TrajectorySetpoint>(px4_namespace+"/fmu/in/trajectory_setpoint", qos);
 		vehicle_command_publisher_ = this->create_publisher<VehicleCommand>(px4_namespace+"/fmu/in/vehicle_command", qos);
-		callback_group_ = this->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
+		vehicle_local_position_sub_ = this->create_subscription<VehicleLocalPosition>(px4_namespace+"/fmu/out/vehicle_local_position", 10, std::bind(&OffboardControl::feedback_position_callback, this, std::placeholders::_1));
+		moving_callback_group_ = this->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
 		rclcpp::SubscriptionOptions moving_options;
+		moving_options.callback_group = moving_callback_group_;
 		std::string move_drone_topic = "/move_drone_" + std::to_string(id_);
-		move_drone_sub_ = this->create_subscription<drone_swarm_msgs::msg::MoveDrone>(move_drone_topic, 10, std::bind(&OffboardControl::position_callback, this, std::placeholders::_1), moving_options);
+		move_drone_sub_ = this->create_subscription<drone_swarm_msgs::msg::MoveDrone>(move_drone_topic, 10, std::bind(&OffboardControl::target_position_callback, this, std::placeholders::_1), moving_options);
 		offboard_setpoint_counter_ = 0;
 		// position controller runs at 50Hz
-		timer_ = this->create_wall_timer(20ms, std::bind(&OffboardControl::timer_callback, this), callback_group_);
+		timer_ = this->create_wall_timer(20ms, std::bind(&OffboardControl::timer_callback, this), moving_callback_group_);
 	}
 
 	void arm();
@@ -96,11 +98,14 @@ public:
 	void land();
 	void timer_callback();
 	void engage_offBoard_mode();
-	void position_callback(const drone_swarm_msgs::msg::MoveDrone::SharedPtr msg);
-	float x_position = 0.0;
+	void target_position_callback(const drone_swarm_msgs::msg::MoveDrone::SharedPtr msg);
+	void feedback_position_callback(const px4_msgs::msg::VehicleLocalPosition::SharedPtr msg);
+	// Body frame positions
+	float x_position = 0.0; 
 	float y_position = 0.0;
 	bool land_var = false;
 	float alpha_yaw = 0.0;
+	// ID of the drone
 	int id_ = 0;
 
 private:
@@ -110,7 +115,8 @@ private:
 	rclcpp::Publisher<TrajectorySetpoint>::SharedPtr trajectory_setpoint_publisher_;
 	rclcpp::Publisher<VehicleCommand>::SharedPtr vehicle_command_publisher_;
 	rclcpp::Subscription<drone_swarm_msgs::msg::MoveDrone>::SharedPtr move_drone_sub_;
-	rclcpp::CallbackGroup::SharedPtr callback_group_;
+	rclcpp::CallbackGroup::SharedPtr moving_callback_group_;
+	rclcpp::Subscription<VehicleLocalPosition>::SharedPtr vehicle_local_position_sub_;
 
 	std::atomic<uint64_t> timestamp_;   //!< common synced timestamped
 
@@ -121,7 +127,7 @@ private:
 	void publish_vehicle_command(VehicleCommand msg);
 };
 
-void OffboardControl::position_callback(const drone_swarm_msgs::msg::MoveDrone::SharedPtr msg)
+void OffboardControl::target_position_callback(const drone_swarm_msgs::msg::MoveDrone::SharedPtr msg)
 {
 	x_position = msg->target_pos_x.data;
 	y_position = msg->target_pos_y.data;
@@ -157,6 +163,12 @@ void OffboardControl::timer_callback() {
 
 		offboard_setpoint_counter_++;
 	}
+}
+
+void OffboardControl::feedback_position_callback(const px4_msgs::msg::VehicleLocalPosition::SharedPtr msg)
+{
+	VehicleLocalPosition vehicle_local_position = *msg;
+	RCLCPP_INFO_STREAM(this->get_logger(), "Feedback position: x=" << vehicle_local_position.x << " y=" << vehicle_local_position.y << " z=" << vehicle_local_position.z);
 }
 
 /**
@@ -249,8 +261,6 @@ void OffboardControl::publish_trajectory_setpoint(float x, float y)
 {
 	TrajectorySetpoint msg{};
 	msg.position = {x, y, -0.5};
-	// Print the x, y, z position
-	RCLCPP_INFO_STREAM(this->get_logger(), "Inside Position: x=" << x << " y=" << y << " z=" << -0.5);
 	msg.yaw = 0.0; // [-PI:PI]
 	msg.timestamp = this->get_clock()->now().nanoseconds() / 1000;
 	trajectory_setpoint_publisher_->publish(msg);
