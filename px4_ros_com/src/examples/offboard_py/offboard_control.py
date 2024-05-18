@@ -38,7 +38,7 @@ class OffboardControl(Node):
         self.offboard_setpoint_counter = 0
         self.vehicle_local_position = VehicleLocalPosition()
         self.vehicle_status = VehicleStatus()
-        self.takeoff_height = -5.0
+        self.takeoff_height = -0.5
 
         # Create a timer to publish control commands
         self.timer = self.create_timer(0.1, self.timer_callback)
@@ -46,6 +46,9 @@ class OffboardControl(Node):
     def vehicle_local_position_callback(self, vehicle_local_position):
         """Callback function for vehicle_local_position topic subscriber."""
         self.vehicle_local_position = vehicle_local_position
+        self.get_logger().info("Position x from feedback: ", self.vehicle_local_position.x)
+        self.get_logger().info("Position y from feedback: ", self.vehicle_local_position.y)
+        self.get_logger().info("Position z from feedback: ", self.vehicle_local_position.z)
 
     def vehicle_status_callback(self, vehicle_status):
         """Callback function for vehicle_status topic subscriber."""
@@ -124,7 +127,8 @@ class OffboardControl(Node):
         if self.vehicle_local_position.z > self.takeoff_height and self.vehicle_status.nav_state == VehicleStatus.NAVIGATION_STATE_OFFBOARD:
             self.publish_position_setpoint(0.0, 0.0, self.takeoff_height)
 
-        elif self.vehicle_local_position.z <= self.takeoff_height:
+        # elif self.vehicle_local_position.z <= self.takeoff_height:
+        if self.offboard_setpoint_counter > 550:
             self.land()
             exit(0)
 
