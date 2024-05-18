@@ -74,7 +74,11 @@ class DroneNode : public rclcpp::Node
         publisher_ = this->create_publisher<drone_swarm_msgs::msg::DroneStatus>(topic_name, 10);
         timer_ = this->create_wall_timer(std::chrono::milliseconds(1000), std::bind(&DroneNode::timer_callback, this));
         std::string topic_name_left = "drone_status_" + std::to_string(neighbour_left_);
+        // Print neighbour_left_ id
+        RCLCPP_INFO(this->get_logger(), "Neighbour Left ID: %d", neighbour_left_);
         std::string topic_name_right = "drone_status_" + std::to_string(neighbour_right_);  
+        // Print neighbour_right_ id
+        RCLCPP_INFO(this->get_logger(), "Neighbour Right ID: %d", neighbour_right_);
         subscriber_left_ = this->create_subscription<drone_swarm_msgs::msg::DroneStatus>(topic_name_left, 10, std::bind(&DroneNode::callback_left, this, std::placeholders::_1));
         subscriber_right_ = this->create_subscription<drone_swarm_msgs::msg::DroneStatus>(topic_name_right, 10, std::bind(&DroneNode::callback_right, this, std::placeholders::_1));
 
