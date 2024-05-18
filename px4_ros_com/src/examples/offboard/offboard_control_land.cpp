@@ -86,7 +86,7 @@ public:
 		qos_profile_sub.reliability(RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT);
 		qos_profile_sub.durability(RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL);
 		qos_profile_sub.history(RMW_QOS_POLICY_HISTORY_KEEP_LAST);
-		qos_profile_sub.depth(1);
+		qos_profile_sub.keep_last(1);
 		offboard_control_mode_publisher_ = this->create_publisher<OffboardControlMode>(px4_namespace+"/fmu/in/offboard_control_mode", qos);
 		trajectory_setpoint_publisher_ = this->create_publisher<TrajectorySetpoint>(px4_namespace+"/fmu/in/trajectory_setpoint", qos);
 		vehicle_command_publisher_ = this->create_publisher<VehicleCommand>(px4_namespace+"/fmu/in/vehicle_command", qos);
