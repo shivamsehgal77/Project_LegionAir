@@ -64,7 +64,7 @@ install(TARGETS offboard_control DESTINATION lib/${PROJECT_NAME})
 
 # examples/offboard/offboard_control_land
 add_executable(offboard_control_land src/examples/offboard/offboard_control_land.cpp)
-ament_target_dependencies(offboard_control_land rclcpp px4_msgs)
+ament_target_dependencies(offboard_control_land rclcpp px4_msgs drone_swarm_msgs)
 install(TARGETS offboard_control_land DESTINATION lib/${PROJECT_NAME})
 
 # examples/offboard/offboard_control_srv
