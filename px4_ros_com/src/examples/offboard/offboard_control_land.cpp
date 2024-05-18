@@ -83,7 +83,7 @@ public:
 		offboard_control_mode_publisher_ = this->create_publisher<OffboardControlMode>(px4_namespace+"/fmu/in/offboard_control_mode", qos);
 		trajectory_setpoint_publisher_ = this->create_publisher<TrajectorySetpoint>(px4_namespace+"/fmu/in/trajectory_setpoint", qos);
 		vehicle_command_publisher_ = this->create_publisher<VehicleCommand>(px4_namespace+"/fmu/in/vehicle_command", qos);
-		vehicle_local_position_sub_ = this->create_subscription<VehicleLocalPosition>(px4_namespace+"/fmu/out/vehicle_local_position", 10, std::bind(&OffboardControl::feedback_position_callback, this, std::placeholders::_1));
+		vehicle_local_position_sub_ = this->create_subscription<VehicleLocalPosition>(px4_namespace+"/fmu/out/vehicle_local_position", qos_profile, std::bind(&OffboardControl::feedback_position_callback, this, std::placeholders::_1));
 		moving_callback_group_ = this->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
 		rclcpp::SubscriptionOptions moving_options;
 		moving_options.callback_group = moving_callback_group_;
