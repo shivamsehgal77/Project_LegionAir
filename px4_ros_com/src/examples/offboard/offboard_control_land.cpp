@@ -176,6 +176,7 @@ void OffboardControl::timer_callback() {
 void OffboardControl::feedback_position_callback(const px4_msgs::msg::VehicleLocalPosition::SharedPtr msg)
 {
 	VehicleLocalPosition vehicle_local_position = *msg;
+	RCLCPP_INFO_STREAM(this->get_logger(), "I heard something in feedback_position_callback");
 	RCLCPP_INFO_STREAM(this->get_logger(), "Feedback position: x=" << vehicle_local_position.x << " y=" << vehicle_local_position.y << " z=" << vehicle_local_position.z);
 }
 
