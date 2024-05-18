@@ -82,50 +82,20 @@ public:
 		offboard_control_mode_publisher_ = this->create_publisher<OffboardControlMode>(px4_namespace+"/fmu/in/offboard_control_mode", qos);
 		trajectory_setpoint_publisher_ = this->create_publisher<TrajectorySetpoint>(px4_namespace+"/fmu/in/trajectory_setpoint", qos);
 		vehicle_command_publisher_ = this->create_publisher<VehicleCommand>(px4_namespace+"/fmu/in/vehicle_command", qos);
+		callback_group_ = this->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
+		rclcpp::SubscriptionOptions moving_options;
 		std::string move_drone_topic = "/move_drone_" + std::to_string(id_);
-		move_drone_sub_ = this->create_subscription<drone_swarm_msgs::msg::MoveDrone>(move_drone_topic, 10, [this](const drone_swarm_msgs::msg::MoveDrone::SharedPtr msg) {
-			x_position = msg->target_pos_x.data;
-			y_position = msg->target_pos_y.data;
-			land_var = msg->land.data;
-			alpha_yaw = msg->alpha.data;
-		});
+		move_drone_sub_ = this->create_subscription<drone_swarm_msgs::msg::MoveDrone>(move_drone_topic, 10, std::bind(&OffboardControl::position_callback, this, std::placeholders::_1), moving_options);
 		offboard_setpoint_counter_ = 0;
-
-		auto timer_callback = [this]() -> void {
-			if (offboard_setpoint_counter_ == 50) {
-				// Change to Offboard mode after 50 setpoints (1s)
-				this->engage_offBoard_mode();
-				
-				// Arm the vehicle
-				this->arm();
-			}
-			if (offboard_setpoint_counter_ == 3550){
-				// Land and cancel timer after (11s)
-				this->land();
-
-				this->timer_->cancel();
-			}
-			if (offboard_setpoint_counter_ < 550) {
-
-				// offboard_control_mode needs to be paired with trajectory_setpoint
-				publish_offboard_control_mode();
-				publish_trajectory_setpoint();
-				if (land_var) {
-					this->land();
-					this->timer_->cancel();
-				}
-
-				offboard_setpoint_counter_++;
-			}
-		};
 		// position controller runs at 50Hz
-		timer_ = this->create_wall_timer(20ms, timer_callback);
+		timer_ = this->create_wall_timer(20ms, std::bind(&OffboardControl::timer_callback, this), callback_group_);
 	}
 
 	void arm();
 	void disarm();
 	void land();
 	void engage_offBoard_mode();
+	void position_callback(const drone_swarm_msgs::msg::MoveDrone::SharedPtr msg);
 	float x_position = 0.0;
 	float y_position = 0.0;
 	bool land_var = false;
@@ -139,6 +109,7 @@ private:
 	rclcpp::Publisher<TrajectorySetpoint>::SharedPtr trajectory_setpoint_publisher_;
 	rclcpp::Publisher<VehicleCommand>::SharedPtr vehicle_command_publisher_;
 	rclcpp::Subscription<drone_swarm_msgs::msg::MoveDrone>::SharedPtr move_drone_sub_;
+	rclcpp::CallbackGroup::SharedPtr callback_group_;
 
 	std::atomic<uint64_t> timestamp_;   //!< common synced timestamped
 
@@ -148,6 +119,43 @@ private:
 	void publish_trajectory_setpoint();
 	void publish_vehicle_command(VehicleCommand msg);
 };
+
+void OffboardControl::position_callback(const drone_swarm_msgs::msg::MoveDrone::SharedPtr msg)
+{
+	x_position = msg->target_pos_x.data;
+	y_position = msg->target_pos_y.data;
+	alpha_yaw = msg->alpha.data;
+	land_var = msg->land.data;
+	RCLCPP_INFO_STREAM(this->get_logger(), "Received position: x=" << x_position << " y=" << y_position << " alpha=" << alpha_yaw);
+}
+
+void OffboardControl::timer_callback() {
+	if (offboard_setpoint_counter_ == 50) {
+		// Change to Offboard mode after 50 setpoints (1s)
+		this->engage_offBoard_mode();
+		
+		// Arm the vehicle
+		this->arm();
+	}
+	if (offboard_setpoint_counter_ == 3550){
+		// Land and cancel timer after (11s)
+		this->land();
+
+		this->timer_->cancel();
+	}
+	if (offboard_setpoint_counter_ < 550) {
+
+		// offboard_control_mode needs to be paired with trajectory_setpoint
+		publish_offboard_control_mode();
+		publish_trajectory_setpoint();
+		if (land_var) {
+			this->land();
+			this->timer_->cancel();
+		}
+
+		offboard_setpoint_counter_++;
+	}
+}
 
 /**
  * @brief Send a command to Arm the vehicle
