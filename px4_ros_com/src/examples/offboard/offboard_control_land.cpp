@@ -145,7 +145,7 @@ void OffboardControl::timer_callback() {
 
 		this->timer_->cancel();
 	}
-	if (offboard_setpoint_counter_ < 550) {
+	if (offboard_setpoint_counter_ > 50) {
 
 		// offboard_control_mode needs to be paired with trajectory_setpoint
 		
