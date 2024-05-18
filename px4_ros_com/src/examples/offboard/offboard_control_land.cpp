@@ -50,6 +50,7 @@
 #include <px4_msgs/msg/vehicle_local_position.hpp>
 #include <drone_swarm_msgs/msg/move_drone.hpp>
 #include <rclcpp/rclcpp.hpp>
+#include <rclcpp/qos.hpp>
 #include <stdint.h>
 
 #include <chrono>
@@ -80,17 +81,10 @@ public:
 		std::string px4_namespace = this->get_namespace();
 		rmw_qos_profile_t qos_profile = rmw_qos_profile_offboard_pub;
 		auto qos = rclcpp::QoS(rclcpp::QoSInitialization(qos_profile.history, 5), qos_profile);
-		
-		rclcpp::QoS qos_profile_sub(rclcpp::QoSInitialization::from_rmw(rmw_qos_profile_default));
-
-		qos_profile_sub.reliability(RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT);
-		qos_profile_sub.durability(RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL);
-		qos_profile_sub.history(RMW_QOS_POLICY_HISTORY_KEEP_LAST);
-		qos_profile_sub.keep_last(1);
 		offboard_control_mode_publisher_ = this->create_publisher<OffboardControlMode>(px4_namespace+"/fmu/in/offboard_control_mode", qos);
 		trajectory_setpoint_publisher_ = this->create_publisher<TrajectorySetpoint>(px4_namespace+"/fmu/in/trajectory_setpoint", qos);
 		vehicle_command_publisher_ = this->create_publisher<VehicleCommand>(px4_namespace+"/fmu/in/vehicle_command", qos);
-		vehicle_local_position_sub_ = this->create_subscription<VehicleLocalPosition>(px4_namespace+"/fmu/out/vehicle_local_position", qos_profile_sub, std::bind(&OffboardControl::feedback_position_callback, this, std::placeholders::_1));
+		vehicle_local_position_sub_ = this->create_subscription<VehicleLocalPosition>(px4_namespace+"/fmu/out/vehicle_local_position", rclcpp::QoS(rclcpp::KeepLast(1)).best_effort().durability_transient_local(), std::bind(&OffboardControl::feedback_position_callback, this, std::placeholders::_1));
 		moving_callback_group_ = this->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
 		rclcpp::SubscriptionOptions moving_options;
 		moving_options.callback_group = moving_callback_group_;
