@@ -80,12 +80,13 @@ public:
 		std::string px4_namespace = this->get_namespace();
 		rmw_qos_profile_t qos_profile = rmw_qos_profile_offboard_pub;
 		auto qos = rclcpp::QoS(rclcpp::QoSInitialization(qos_profile.history, 5), qos_profile);
-		rclcpp::QoS qos_profile_sub(rclcpp::KeepLast(5));
-		qos_profile_sub.reliability(rclcpp::ReliabilityPolicy::BestEffort());
-		qos_profile_sub.durability(rclcpp::DurabilityPolicy::TransientLocal());
-		qos_profile_sub.deadline(rclcpp::Duration(RCL_MS_TO_NS(100)));
-		qos_profile_sub.liveliness(rclcpp::LivelinessPolicy::Automatic());
-		qos_profile_sub.liveliness_lease_duration(rclcpp::Duration(RCL_MS_TO_NS(500)));
+		
+		rclcpp::QoS qos_profile_sub(rclcpp::QoSInitialization::from_rmw(rmw_qos_profile_default));
+
+		qos_profile_sub.reliability(RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT);
+		qos_profile_sub.durability(RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL);
+		qos_profile_sub.history(RMW_QOS_POLICY_HISTORY_KEEP_LAST);
+		qos_profile_sub.depth(1);
 		offboard_control_mode_publisher_ = this->create_publisher<OffboardControlMode>(px4_namespace+"/fmu/in/offboard_control_mode", qos);
 		trajectory_setpoint_publisher_ = this->create_publisher<TrajectorySetpoint>(px4_namespace+"/fmu/in/trajectory_setpoint", qos);
 		vehicle_command_publisher_ = this->create_publisher<VehicleCommand>(px4_namespace+"/fmu/in/vehicle_command", qos);
