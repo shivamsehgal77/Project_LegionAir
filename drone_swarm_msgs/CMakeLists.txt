@@ -13,12 +13,14 @@ find_package(rosidl_default_generators REQUIRED)
 
 set(msg_files
 "msg/DroneStatus.msg"
+"msg/MoveDrone.msg"
 )
 
 set(srv_files
 "srv/DropDrone.srv"
 "srv/SetAnchorAndNeighbours.srv"
 "srv/CalcAngle.srv"
+"srv/MoveDrone.srv"
 )
 
 rosidl_generate_interfaces(${PROJECT_NAME}

@@ -5,15 +5,18 @@
 #include <std_msgs/msg/bool.hpp>
 #include <geometry_msgs/msg/pose.hpp>
 #include <drone_swarm_msgs/msg/drone_status.hpp>
+#include <drone_swarm_msgs/msg/move_drone.hpp>
 #include <drone_swarm_msgs/srv/drop_drone.hpp>
 #include <drone_swarm_msgs/srv/set_anchor_and_neighbours.hpp>
 #include <drone_swarm_msgs/srv/calc_angle.hpp>
+#include <drone_swarm_msgs/srv/move_drone.hpp>
 #include "rcl_interfaces/msg/set_parameters_result.hpp" ///< Include the rcl_interfaces library
 
 
 using DropDroneSrv = drone_swarm_msgs::srv::DropDrone;
 using SetAnchorAndNeighbours = drone_swarm_msgs::srv::SetAnchorAndNeighbours;
 using CalcAngle = drone_swarm_msgs::srv::CalcAngle;
+using MoveDroneSrv = drone_swarm_msgs::srv::MoveDrone;
 class DroneNode : public rclcpp::Node
 {
     public:
@@ -41,6 +44,12 @@ class DroneNode : public rclcpp::Node
         phase_angel_ = this->get_parameter("phase_angle").as_double();
 
         target_phase_angel_ = phase_angel_;
+        target_x_ = 0.0;
+        target_y_ = 0.0;
+        temp_target_x_ = 0.0;
+        temp_target_y_ = 0.0;
+        alpha_ = 0.0;
+        land_ = false;
 
         rcl_interfaces::msg::ParameterDescriptor descriptor_radius;
         descriptor_radius.description = "Radius";
@@ -69,11 +78,25 @@ class DroneNode : public rclcpp::Node
         subscriber_left_ = this->create_subscription<drone_swarm_msgs::msg::DroneStatus>(topic_name_left, 10, std::bind(&DroneNode::callback_left, this, std::placeholders::_1));
         subscriber_right_ = this->create_subscription<drone_swarm_msgs::msg::DroneStatus>(topic_name_right, 10, std::bind(&DroneNode::callback_right, this, std::placeholders::_1));
 
+        // Create MoveDrone Publisher
+        std::string topic_name_move = "move_drone_" + std::to_string(id_);
+        move_msg_ = drone_swarm_msgs::msg::MoveDrone();
+        publisher_move_ = this->create_publisher<drone_swarm_msgs::msg::MoveDrone>(topic_name_move, 10);
+
+        timer_2 = this->create_wall_timer(std::chrono::milliseconds(1000), std::bind(&DroneNode::Move_drone_callback, this));
+
+
         // Drop node service server
         std::string service_name_drop_drone_ = "drop_drone_" + std::to_string(id_);
         service_1_ = this->create_service<DropDroneSrv>(
         service_name_drop_drone_,
         std::bind(&DroneNode::handle_drop_done_request,
+                  this, std::placeholders::_1, std::placeholders::_2));
+
+        std::string service_name_move_drone_ = "move_drone_" + std::to_string(id_);
+        service_move_ = this->create_service<MoveDroneSrv>(
+        service_name_move_drone_,
+        std::bind(&DroneNode::handle_move_drone_request,
                   this, std::placeholders::_1, std::placeholders::_2));
 
         // Set anchor and neighbors service server
@@ -96,6 +119,12 @@ class DroneNode : public rclcpp::Node
       std::shared_ptr<DropDroneSrv::Response> response);
     // Service object
     rclcpp::Service<DropDroneSrv>::SharedPtr service_1_;
+
+    void handle_move_drone_request(
+      const std::shared_ptr<MoveDroneSrv::Request> request,
+      std::shared_ptr<MoveDroneSrv::Response> response);
+    // Service object
+    rclcpp::Service<MoveDroneSrv>::SharedPtr service_move_;
 
     void handle_anchor_and_neighbours_request(
       const std::shared_ptr<SetAnchorAndNeighbours::Request> request,
@@ -120,12 +149,16 @@ class DroneNode : public rclcpp::Node
 
     drone_swarm_msgs::msg::DroneStatus status_msg_;
     rclcpp::Publisher<drone_swarm_msgs::msg::DroneStatus>::SharedPtr publisher_;
+    rclcpp::Publisher<drone_swarm_msgs::msg::MoveDrone>::SharedPtr publisher_move_;
     rclcpp::TimerBase::SharedPtr timer_;
+    rclcpp::TimerBase::SharedPtr timer_2;
+    drone_swarm_msgs::msg::MoveDrone move_msg_;
     rclcpp::Subscription<drone_swarm_msgs::msg::DroneStatus>::SharedPtr subscriber_left_;
     rclcpp::Subscription<drone_swarm_msgs::msg::DroneStatus>::SharedPtr subscriber_right_;
     void callback_left(const drone_swarm_msgs::msg::DroneStatus::SharedPtr msg);
     void callback_right(const drone_swarm_msgs::msg::DroneStatus::SharedPtr msg);
     void timer_callback();
+    void Move_drone_callback();
     bool anchor_;
     int id_ ;
     double phase_angel_ ; /// deg
@@ -133,6 +166,13 @@ class DroneNode : public rclcpp::Node
     double radius_ ; /// m
     int neighbour_left_ ;
     int neighbour_right_ ;
+    float target_x_ ;
+    float target_y_ ;
+    float temp_target_x_ ;
+    float temp_target_y_ ;
+    float alpha_ ;
+    float temp_alpha_ ;
+    bool land_;
 
     // Left
     double phase_angel_left_ ; /// deg
