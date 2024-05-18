@@ -25,6 +25,7 @@ find_package(px4_msgs REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(rclpy REQUIRED)
+find_package(drone_swarm_msgs REQUIRED)
 
 #################
 # Setup targets #

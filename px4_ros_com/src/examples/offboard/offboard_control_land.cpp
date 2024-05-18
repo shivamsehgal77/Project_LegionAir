@@ -84,10 +84,10 @@ public:
 		vehicle_command_publisher_ = this->create_publisher<VehicleCommand>(px4_namespace+"/fmu/in/vehicle_command", qos);
 		std::string move_drone_topic = "/move_drone_" + id_;
 		move_drone_sub_ = this->create_subscription<drone_swarm_msgs::msg::MoveDrone>(move_drone_topic, 10, [this](const drone_swarm_msgs::msg::MoveDrone::SharedPtr msg) {
-			x_position = msg->target_pos_x;
-			y_position = msg->target_pos_y;
-			land = msg->land;
-			alpha_yaw = msg->alpha;
+			x_position = msg.data->target_pos_x;
+			y_position = msg.data->target_pos_y;
+			land_var = msg->land;
+			alpha_yaw = msg.data->alpha;
 		});
 		offboard_setpoint_counter_ = 0;
 
@@ -110,7 +110,7 @@ public:
 				// offboard_control_mode needs to be paired with trajectory_setpoint
 				publish_offboard_control_mode();
 				publish_trajectory_setpoint();
-				if (land) {
+				if (land_var) {
 					this->land();
 					this->timer_->cancel();
 				}
@@ -128,7 +128,7 @@ public:
 	void engage_offBoard_mode();
 	float x_position = 0.0;
 	float y_position = 0.0;
-	bool land = false;
+	bool land_var = false;
 	float alpha_yaw = 0.0;
 	int id_ = 0;
 
