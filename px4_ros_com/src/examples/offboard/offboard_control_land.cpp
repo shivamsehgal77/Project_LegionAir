@@ -82,7 +82,7 @@ public:
 		offboard_control_mode_publisher_ = this->create_publisher<OffboardControlMode>(px4_namespace+"/fmu/in/offboard_control_mode", qos);
 		trajectory_setpoint_publisher_ = this->create_publisher<TrajectorySetpoint>(px4_namespace+"/fmu/in/trajectory_setpoint", qos);
 		vehicle_command_publisher_ = this->create_publisher<VehicleCommand>(px4_namespace+"/fmu/in/vehicle_command", qos);
-		std::string move_drone_topic = "/move_drone_" + std::string(id_);
+		std::string move_drone_topic = "/move_drone_" + std::to_string(id_);
 		move_drone_sub_ = this->create_subscription<drone_swarm_msgs::msg::MoveDrone>(move_drone_topic, 10, [this](const drone_swarm_msgs::msg::MoveDrone::SharedPtr msg) {
 			x_position = msg->target_pos_x.data;
 			y_position = msg->target_pos_y.data;
@@ -99,7 +99,7 @@ public:
 				// Arm the vehicle
 				this->arm();
 			}
-			if (offboard_setpoint_counter_ == 550){
+			if (offboard_setpoint_counter_ == 3550){
 				// Land and cancel timer after (11s)
 				this->land();
 
