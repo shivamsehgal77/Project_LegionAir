@@ -80,10 +80,16 @@ public:
 		std::string px4_namespace = this->get_namespace();
 		rmw_qos_profile_t qos_profile = rmw_qos_profile_offboard_pub;
 		auto qos = rclcpp::QoS(rclcpp::QoSInitialization(qos_profile.history, 5), qos_profile);
+		rclcpp::QoS qos_profile_sub(rclcpp::KeepLast(5));
+		qos_profile_sub.reliability(rclcpp::ReliabilityPolicy::BestEffort());
+		qos_profile_sub.durability(rclcpp::DurabilityPolicy::TransientLocal());
+		qos_profile_sub.deadline(rclcpp::Duration(RCL_MS_TO_NS(100)));
+		qos_profile_sub.liveliness(rclcpp::LivelinessPolicy::Automatic());
+		qos_profile_sub.liveliness_lease_duration(rclcpp::Duration(RCL_MS_TO_NS(500)));
 		offboard_control_mode_publisher_ = this->create_publisher<OffboardControlMode>(px4_namespace+"/fmu/in/offboard_control_mode", qos);
 		trajectory_setpoint_publisher_ = this->create_publisher<TrajectorySetpoint>(px4_namespace+"/fmu/in/trajectory_setpoint", qos);
 		vehicle_command_publisher_ = this->create_publisher<VehicleCommand>(px4_namespace+"/fmu/in/vehicle_command", qos);
-		vehicle_local_position_sub_ = this->create_subscription<VehicleLocalPosition>(px4_namespace+"/fmu/out/vehicle_local_position", qos, std::bind(&OffboardControl::feedback_position_callback, this, std::placeholders::_1));
+		vehicle_local_position_sub_ = this->create_subscription<VehicleLocalPosition>(px4_namespace+"/fmu/out/vehicle_local_position", qos_profile_sub, std::bind(&OffboardControl::feedback_position_callback, this, std::placeholders::_1));
 		moving_callback_group_ = this->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
 		rclcpp::SubscriptionOptions moving_options;
 		moving_options.callback_group = moving_callback_group_;
