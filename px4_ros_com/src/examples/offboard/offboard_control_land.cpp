@@ -47,6 +47,7 @@
 #include <px4_msgs/msg/trajectory_setpoint.hpp>
 #include <px4_msgs/msg/vehicle_command.hpp>
 #include <px4_msgs/msg/vehicle_control_mode.hpp>
+#include <px4_msgs/msg/vehicle_local_position.hpp>
 #include <drone_swarm_msgs/msg/move_drone.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <stdint.h>
