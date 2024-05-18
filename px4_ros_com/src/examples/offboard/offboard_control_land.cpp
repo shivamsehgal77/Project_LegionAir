@@ -248,6 +248,8 @@ void OffboardControl::publish_trajectory_setpoint(float x, float y)
 {
 	TrajectorySetpoint msg{};
 	msg.position = {x, y, -0.5};
+	// Print the x, y, z position
+	RCLCPP_INFO_STREAM(this->get_logger(), "Inside Position: x=" << x << " y=" << y << " z=" << -0.5);
 	msg.yaw = 0.0; // [-PI:PI]
 	msg.timestamp = this->get_clock()->now().nanoseconds() / 1000;
 	trajectory_setpoint_publisher_->publish(msg);
