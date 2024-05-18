@@ -117,7 +117,7 @@ private:
 	uint64_t offboard_setpoint_counter_;   //!< counter for the number of setpoints sent
 
 	void publish_offboard_control_mode();
-	void publish_trajectory_setpoint();
+	void publish_trajectory_setpoint(float x, float y);
 	void publish_vehicle_command(VehicleCommand msg);
 };
 
@@ -148,7 +148,7 @@ void OffboardControl::timer_callback() {
 
 		// offboard_control_mode needs to be paired with trajectory_setpoint
 		publish_offboard_control_mode();
-		publish_trajectory_setpoint();
+		publish_trajectory_setpoint(x_position, y_position);
 		if (land_var) {
 			this->land();
 			this->timer_->cancel();
@@ -244,11 +244,10 @@ void OffboardControl::engage_offBoard_mode()
  *        For this example, it sends a trajectory setpoint to make the
  *        vehicle hover at 5 meters with a yaw angle of 180 degrees.
  */
-void OffboardControl::publish_trajectory_setpoint()
+void OffboardControl::publish_trajectory_setpoint(float x, float y)
 {
 	TrajectorySetpoint msg{};
-	
-	msg.position = {x_position, y_position, -0.5};
+	msg.position = {x, y, -0.5};
 	msg.yaw = 0.0; // [-PI:PI]
 	msg.timestamp = this->get_clock()->now().nanoseconds() / 1000;
 	trajectory_setpoint_publisher_->publish(msg);
