@@ -131,6 +131,7 @@ void OffboardControl::position_callback(const drone_swarm_msgs::msg::MoveDrone::
 }
 
 void OffboardControl::timer_callback() {
+	publish_offboard_control_mode();
 	if (offboard_setpoint_counter_ == 50) {
 		// Change to Offboard mode after 50 setpoints (1s)
 		this->engage_offBoard_mode();
@@ -147,7 +148,7 @@ void OffboardControl::timer_callback() {
 	if (offboard_setpoint_counter_ < 550) {
 
 		// offboard_control_mode needs to be paired with trajectory_setpoint
-		publish_offboard_control_mode();
+		
 		publish_trajectory_setpoint(x_position, y_position);
 		if (land_var) {
 			this->land();
