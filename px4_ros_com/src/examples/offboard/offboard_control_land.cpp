@@ -164,13 +164,13 @@ void OffboardControl::timer_callback() {
 		// Arm the vehicle
 		// this->arm();
 	}
-	if (offboard_setpoint_counter_ == 3550){
+	if (offboard_setpoint_counter_ == 5550){
 		// Land and cancel timer after (11s)
 		this->land();
 
 		this->timer_->cancel();
 	}
-	if (offboard_setpoint_counter_ < 10000) {
+	if (offboard_setpoint_counter_ > 500) {
 		// offboard_control_mode needs to be paired with trajectory_setpoint
 		publish_trajectory_setpoint(x_position, y_position);
 		if (land_var) {
