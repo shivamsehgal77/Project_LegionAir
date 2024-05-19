@@ -112,6 +112,9 @@ public:
 	float alpha_yaw = 0.0;
 	// ID of the drone
 	int id_ = 0;
+	// Current position feedback
+	float x_feedback = 0.0;
+	float y_feedback = 0.0;
 
 private:
 	rclcpp::TimerBase::SharedPtr timer_;
@@ -159,8 +162,9 @@ void OffboardControl::timer_callback() {
 	if (offboard_setpoint_counter_ < 10000) {
 
 		// offboard_control_mode needs to be paired with trajectory_setpoint
-		
-		publish_trajectory_setpoint(x_position, y_position);
+		float x_target = x_feedback + x_position;
+		float y_target = y_feedback + y_position;
+		publish_trajectory_setpoint(x_target, y_target);
 		if (land_var) {
 			this->land();
 			this->timer_->cancel();
@@ -175,6 +179,8 @@ void OffboardControl::feedback_position_callback(const px4_msgs::msg::VehicleLoc
 	VehicleLocalPosition vehicle_local_position = *msg;
 	RCLCPP_INFO_STREAM(this->get_logger(), "I heard something in feedback_position_callback");
 	RCLCPP_INFO_STREAM(this->get_logger(), "Feedback position: x=" << vehicle_local_position.x << " y=" << vehicle_local_position.y << " z=" << vehicle_local_position.z);
+	x_feedback = vehicle_local_position.x;
+	y_feedback = vehicle_local_position.y;
 }
 
 /**
