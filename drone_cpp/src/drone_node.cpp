@@ -9,11 +9,6 @@ void DroneNode::handle_drop_done_request(///< Handle the request from the servic
     const std::shared_ptr<DropDroneSrv::Request> request,
     const std::shared_ptr<DropDroneSrv::Response> response)
 {   
-    
-    
-    mutex_group_ = this->create_callback_group(
-        rclcpp::CallbackGroupType::MutuallyExclusive);
-
     auto right_neighbour_request = std::make_shared<SetAnchorAndNeighbours::Request>();///< Create a request for the right neighbor.
     right_neighbour_request->anchor = false;///< Set the anchor status to false.
     right_neighbour_request->new_neighbour = neighbour_left_;///< Set the neighbor id.
@@ -24,6 +19,16 @@ void DroneNode::handle_drop_done_request(///< Handle the request from the servic
         rmw_qos_profile_services_default,  // qos profile
         mutex_group_                       // callback group
     );
+    while (
+        !sync_client_right->wait_for_service(std::chrono::seconds(1))) {
+        if (!rclcpp::ok()) {
+        RCLCPP_ERROR(
+            this->get_logger(),
+            "Client interrupted while waiting for the service. Exiting.");
+        return;
+        }
+        RCLCPP_INFO(this->get_logger(), "service not available, waiting again...");
+    }
     auto result_future_right = sync_client_right->async_send_request(right_neighbour_request,
     std::bind(&DroneNode::set_anchor_and_neighbours_response_callback, this, std::placeholders::_1));
     // auto result_future_right = sync_client_right->async_send_request(right_neighbour_request);
@@ -39,6 +44,16 @@ void DroneNode::handle_drop_done_request(///< Handle the request from the servic
         rmw_qos_profile_services_default,  // qos profile
         mutex_group_                       // callback group
     );
+    while (
+        !sync_client_left->wait_for_service(std::chrono::seconds(1))) {
+        if (!rclcpp::ok()) {
+        RCLCPP_ERROR(
+            this->get_logger(),
+            "Client interrupted while waiting for the service. Exiting.");
+        return;
+        }
+        RCLCPP_INFO(this->get_logger(), "service not available, waiting again...");
+    }
     auto result_future_left = sync_client_left->async_send_request(left_neighbour_request,
     std::bind(&DroneNode::set_anchor_and_neighbours_response_callback, this, std::placeholders::_1));
     // auto result_future_left = sync_client_left->async_send_request(left_neighbour_request);
@@ -64,8 +79,6 @@ void DroneNode::handle_anchor_and_neighbours_request(///< Handle the request fro
 
     RCLCPP_INFO(this->get_logger(), "Previous state");///< Log the anchor and neighbors set.
     RCLCPP_INFO(this->get_logger(), "Drone %d anchor %d neighbour_left %d neighbour_right %d", id_, anchor_, neighbour_left_, neighbour_right_);
-    mutex_group_3_ = this->create_callback_group(
-        rclcpp::CallbackGroupType::MutuallyExclusive);
     if(anchor_bool)///< If the drone is an anchor.
     {
         anchor_ = true;///< Set the anchor status to true.
@@ -111,6 +124,16 @@ void DroneNode::handle_anchor_and_neighbours_request(///< Handle the request fro
              rmw_qos_profile_services_default,  // qos profile
              mutex_group_3_                       // callback group
          );
+        while (
+            !sync_client_right->wait_for_service(std::chrono::seconds(1))) {
+            if (!rclcpp::ok()) {
+            RCLCPP_ERROR(
+                this->get_logger(),
+                "Client interrupted while waiting for the service. Exiting.");
+            return;
+            }
+            RCLCPP_INFO(this->get_logger(), "service not available, waiting again...");
+        }
         auto result_future_right = sync_client_right->async_send_request(right_neighbour_request,std::bind(&DroneNode::calc_angle_response_callback, this, std::placeholders::_1));
         // auto result_future_right = sync_client_right->async_send_request(right_neighbour_request);
         RCLCPP_INFO(this->get_logger(), "Calc angle service request sent from anchor{%d} to neighbour right{%d}",id_, neighbour_right_);///< Log the received angle.
@@ -143,8 +166,6 @@ void DroneNode::handle_calc_angle(///< Handle the request from the service.
     const std::shared_ptr<CalcAngle::Request> request,
     const std::shared_ptr<CalcAngle::Response> response)
 {
-    mutex_group_2_ = this->create_callback_group(
-        rclcpp::CallbackGroupType::MutuallyExclusive);
     if(!anchor_)
     {
         double target_angle = request->target_angle;///< Get the target angle.
@@ -189,6 +210,16 @@ void DroneNode::handle_calc_angle(///< Handle the request from the service.
              rmw_qos_profile_services_default,  // qos profile
              mutex_group_2_                       // callback group
          );
+        while (
+            !sync_client_right->wait_for_service(std::chrono::seconds(1))) {
+            if (!rclcpp::ok()) {
+            RCLCPP_ERROR(
+                this->get_logger(),
+                "Client interrupted while waiting for the service. Exiting.");
+            return;
+            }
+            RCLCPP_INFO(this->get_logger(), "service not available, waiting again...");
+        }
         auto result_future_right = sync_client_right->async_send_request(right_neighbour_request,std::bind(&DroneNode::calc_angle_response_callback, this, std::placeholders::_1));
         // auto result_future_right = sync_client_right->async_send_request(right_neighbour_request);
         
@@ -221,19 +252,34 @@ void DroneNode::handle_move_drone_request(///< Handle the request from the servi
 
 void DroneNode::set_anchor_and_neighbours_response_callback(
     rclcpp::Client<SetAnchorAndNeighbours>::SharedFuture future) {
-  auto status = future.wait_for(0.5s);
+  auto status = future.wait_for(2.0s);
   if (status == std::future_status::ready) {
-    auto result = static_cast<int>(future.get()->done);
-    // print_profile(result);
+    RCLCPP_INFO_STREAM(this->get_logger(), "I am at anchor and neighbour status ready");
+    auto result = future.get();
+    if (result->done) {
+      RCLCPP_INFO_STREAM(this->get_logger(), "Successfully set anchor and neighbours");
+    } else {
+      RCLCPP_ERROR_STREAM(this->get_logger(), "Failed to set anchor and neighbours");
+    }
+  } else {
+    RCLCPP_ERROR_STREAM(this->get_logger(), "Anchor and Neighbor setting Service call failed");
   }
 }
 
 void DroneNode::calc_angle_response_callback(
     rclcpp::Client<CalcAngle>::SharedFuture future) {
-  auto status = future.wait_for(0.5s);
+  auto status = future.wait_for(2.0s);
   if (status == std::future_status::ready) {
-    auto result = static_cast<int>(future.get()->received);
-    // print_profile(result);
+    RCLCPP_INFO_STREAM(this->get_logger(), "I am at Calc angle status ready");
+    auto result = future.get();
+
+    if (result->received) {
+      RCLCPP_INFO_STREAM(this->get_logger(), "Successfully received angle");
+    } else {
+      RCLCPP_ERROR_STREAM(this->get_logger(), "Failed to receive angle");
+    }
+  } else {
+    RCLCPP_ERROR_STREAM(this->get_logger(), "calc angle Service call failed");
   }
 }
 
@@ -269,7 +315,10 @@ void DroneNode::Move_drone_callback()///< Move drone callback function.
 int main(int argc, char * argv[])
 {
     rclcpp::init(argc, argv);///< Initialize the ROS 2 system.
+    rclcpp::executors::MultiThreadedExecutor executor;///< Create a multi-threaded executor.
     auto drone_node = std::make_shared<DroneNode>("drone_number");///< Create a DroneNode.
-    rclcpp::spin(drone_node);///< Spin the node to continuously publish messages.
+    executor.add_node(drone_node);///< Add the node to the executor.
+    executor.spin();///< Spin the executor.
     rclcpp::shutdown();//< Shutdown the ROS 2 system.
+    return 0;
 }
