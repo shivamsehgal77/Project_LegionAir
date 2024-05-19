@@ -165,15 +165,7 @@ void OffboardControl::timer_callback() {
 	}
 	if (offboard_setpoint_counter_ < 10000) {
 		// offboard_control_mode needs to be paired with trajectory_setpoint
-		if (x_feedback>0.0 && y_feedback>0.0) {	
-			x_target = x_feedback + x_position;
-			y_target = y_feedback + y_position;
-		}
-		else {
-			x_target = x_position;
-			y_target = y_position;
-		}
-		publish_trajectory_setpoint(x_target, y_target);
+		publish_trajectory_setpoint(x_position, y_position);
 		if (land_var) {
 			this->land();
 			this->timer_->cancel();
