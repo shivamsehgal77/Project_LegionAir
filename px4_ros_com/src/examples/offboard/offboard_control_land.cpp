@@ -48,6 +48,7 @@
 #include <px4_msgs/msg/vehicle_command.hpp>
 #include <px4_msgs/msg/vehicle_control_mode.hpp>
 #include <px4_msgs/msg/vehicle_local_position.hpp>
+#include <px4_msgs/msg/vehicle_control_mode.hpp>
 #include <drone_swarm_msgs/msg/move_drone.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp/qos.hpp>
@@ -91,7 +92,7 @@ public:
 		trajectory_setpoint_publisher_ = this->create_publisher<TrajectorySetpoint>(px4_namespace+"/fmu/in/trajectory_setpoint", qos);
 		vehicle_command_publisher_ = this->create_publisher<VehicleCommand>(px4_namespace+"/fmu/in/vehicle_command", qos);
 		vehicle_local_position_sub_ = this->create_subscription<VehicleLocalPosition>(px4_namespace+"/fmu/out/vehicle_local_position", qos_assured, std::bind(&OffboardControl::feedback_position_callback, this, std::placeholders::_1), moving_options);
-		
+		vehicle_control_mode_sub_ = this->create_subscription<VehicleControlMode>(px4_namespace+"/fmu/out/vehicle_control_mode", qos_assured, std::bind(&OffboardControl::vehicle_mode_callback, this, std::placeholders::_1), moving_options);
 		std::string move_drone_topic = "/move_drone_" + std::to_string(id_);
 		move_drone_sub_ = this->create_subscription<drone_swarm_msgs::msg::MoveDrone>(move_drone_topic, 10, std::bind(&OffboardControl::target_position_callback, this, std::placeholders::_1), moving_options);
 		offboard_setpoint_counter_ = 0;
@@ -106,6 +107,7 @@ public:
 	void engage_offBoard_mode();
 	void target_position_callback(const drone_swarm_msgs::msg::MoveDrone::SharedPtr msg);
 	void feedback_position_callback(const px4_msgs::msg::VehicleLocalPosition::SharedPtr msg);
+	void vehicle_mode_callback(const px4_msgs::msg::VehicleControlMode::SharedPtr msg);
 	// Body frame positions
 	float x_position = 0.0; 
 	float y_position = 0.0;
@@ -119,6 +121,7 @@ public:
 	// Target position
 	float x_target = 0.0;
 	float y_target = 0.0;
+	bool vehicle_mode_offboard_ = false;
 
 private:
 	rclcpp::TimerBase::SharedPtr timer_;
@@ -129,6 +132,7 @@ private:
 	rclcpp::Subscription<drone_swarm_msgs::msg::MoveDrone>::SharedPtr move_drone_sub_;
 	rclcpp::CallbackGroup::SharedPtr moving_callback_group_;
 	rclcpp::Subscription<VehicleLocalPosition>::SharedPtr vehicle_local_position_sub_;
+	rclcpp::Subscription<VehicleControlMode>::SharedPtr vehicle_control_mode_sub_;
 
 	std::atomic<uint64_t> timestamp_;   //!< common synced timestamped
 
@@ -149,6 +153,9 @@ void OffboardControl::target_position_callback(const drone_swarm_msgs::msg::Move
 }
 
 void OffboardControl::timer_callback() {
+	if (!vehicle_mode_offboard_) {
+		return;
+	}
 	publish_offboard_control_mode();
 	if (offboard_setpoint_counter_ == 50) {
 		// Change to Offboard mode after 50 setpoints (1s)
@@ -288,6 +295,14 @@ void OffboardControl::publish_vehicle_command(VehicleCommand msg)
 	msg.timestamp = this->get_clock()->now().nanoseconds() / 1000;
 	
 	vehicle_command_publisher_->publish(msg);
+}
+
+void OffboardControl::vehicle_mode_callback(const px4_msgs::msg::VehicleControlMode::SharedPtr msg)
+{
+	VehicleControlMode vehicle_control_mode = *msg;
+	vehicle_mode_offboard_ = vehicle_control_mode.flag_control_offboard_enabled;
+	RCLCPP_INFO_STREAM(this->get_logger(), "I heard something in vehicle_mode_callback");
+	RCLCPP_INFO_STREAM(this->get_logger(), "Vehicle mode: offboard=" << vehicle_mode_offboard_);
 }
 
 int main(int argc, char *argv[])
