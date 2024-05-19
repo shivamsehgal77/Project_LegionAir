@@ -84,13 +84,14 @@ public:
 		rclcpp::QoS qos_assured(rclcpp::KeepLast(5));
 		qos_assured.best_effort();
 		qos_assured.durability_volatile();
-		offboard_control_mode_publisher_ = this->create_publisher<OffboardControlMode>(px4_namespace+"/fmu/in/offboard_control_mode", qos);
-		trajectory_setpoint_publisher_ = this->create_publisher<TrajectorySetpoint>(px4_namespace+"/fmu/in/trajectory_setpoint", qos);
-		vehicle_command_publisher_ = this->create_publisher<VehicleCommand>(px4_namespace+"/fmu/in/vehicle_command", qos);
-		vehicle_local_position_sub_ = this->create_subscription<VehicleLocalPosition>(px4_namespace+"/fmu/out/vehicle_local_position", qos_assured, std::bind(&OffboardControl::feedback_position_callback, this, std::placeholders::_1));
 		moving_callback_group_ = this->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
 		rclcpp::SubscriptionOptions moving_options;
 		moving_options.callback_group = moving_callback_group_;
+		offboard_control_mode_publisher_ = this->create_publisher<OffboardControlMode>(px4_namespace+"/fmu/in/offboard_control_mode", qos);
+		trajectory_setpoint_publisher_ = this->create_publisher<TrajectorySetpoint>(px4_namespace+"/fmu/in/trajectory_setpoint", qos);
+		vehicle_command_publisher_ = this->create_publisher<VehicleCommand>(px4_namespace+"/fmu/in/vehicle_command", qos);
+		vehicle_local_position_sub_ = this->create_subscription<VehicleLocalPosition>(px4_namespace+"/fmu/out/vehicle_local_position", qos_assured, std::bind(&OffboardControl::feedback_position_callback, this, std::placeholders::_1), moving_options);
+		
 		std::string move_drone_topic = "/move_drone_" + std::to_string(id_);
 		move_drone_sub_ = this->create_subscription<drone_swarm_msgs::msg::MoveDrone>(move_drone_topic, 10, std::bind(&OffboardControl::target_position_callback, this, std::placeholders::_1), moving_options);
 		offboard_setpoint_counter_ = 0;
