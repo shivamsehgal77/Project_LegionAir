@@ -115,6 +115,9 @@ public:
 	// Current position feedback
 	float x_feedback = 0.0;
 	float y_feedback = 0.0;
+	// Target position
+	float x_target = 0.0;
+	float y_target = 0.0;
 
 private:
 	rclcpp::TimerBase::SharedPtr timer_;
@@ -160,15 +163,14 @@ void OffboardControl::timer_callback() {
 		this->timer_->cancel();
 	}
 	if (offboard_setpoint_counter_ < 10000) {
-
 		// offboard_control_mode needs to be paired with trajectory_setpoint
 		if (x_feedback>0.0 && y_feedback>0.0) {	
-			float x_target = x_feedback + x_position;
-			float y_target = y_feedback + y_position;
+			x_target = x_feedback + x_position;
+			y_target = y_feedback + y_position;
 		}
 		else {
-			float x_target = x_position;
-			float y_target = y_position;
+			x_target = x_position;
+			y_target = y_position;
 		}
 		publish_trajectory_setpoint(x_target, y_target);
 		if (land_var) {
