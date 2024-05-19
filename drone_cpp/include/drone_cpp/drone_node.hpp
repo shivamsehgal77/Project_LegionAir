@@ -91,31 +91,31 @@ class DroneNode : public rclcpp::Node
         publisher_move_ = this->create_publisher<drone_swarm_msgs::msg::MoveDrone>(topic_name_move, 10);
         timer_2 = this->create_wall_timer(std::chrono::milliseconds(1000), std::bind(&DroneNode::Move_drone_callback, this), pub_sub_group_);
 
-
+        service_group_ = this->create_callback_group(rclcpp::CallbackGroupType::Reentrant);
         // Drop node service server
         std::string service_name_drop_drone_ = "drop_drone_" + std::to_string(id_);
         service_1_ = this->create_service<DropDroneSrv>(
         service_name_drop_drone_,
         std::bind(&DroneNode::handle_drop_done_request,
-                  this, std::placeholders::_1, std::placeholders::_2));
+                  this, std::placeholders::_1, std::placeholders::_2), service_group_);
 
         std::string service_name_move_drone_ = "move_drone_" + std::to_string(id_);
         service_move_ = this->create_service<MoveDroneSrv>(
         service_name_move_drone_,
         std::bind(&DroneNode::handle_move_drone_request,
-                  this, std::placeholders::_1, std::placeholders::_2));
+                  this, std::placeholders::_1, std::placeholders::_2), service_group_);
 
         // Set anchor and neighbors service server
         std::string service_name_anch_neigh = "set_anchor_and_neighbours" + std::to_string(id_);
         service_2_ = this->create_service<SetAnchorAndNeighbours>(
         service_name_anch_neigh,
         std::bind(&DroneNode::handle_anchor_and_neighbours_request,
-                  this, std::placeholders::_1, std::placeholders::_2));
+                  this, std::placeholders::_1, std::placeholders::_2), service_group_);
 
         // Calculate the phase angle and radius for the left drone
         std::string service_name_calc_angle= "calc_angle_" + std::to_string(id_);
         service_3_ = this->create_service<CalcAngle>(service_name_calc_angle,std::bind(&DroneNode::handle_calc_angle, 
-        this, std::placeholders::_1, std::placeholders::_2));
+        this, std::placeholders::_1, std::placeholders::_2), service_group_);
 
         }
     private:
@@ -154,6 +154,7 @@ class DroneNode : public rclcpp::Node
     rclcpp::CallbackGroup::SharedPtr mutex_group_3_;
 
     rclcpp::CallbackGroup::SharedPtr pub_sub_group_;
+    rclcpp::CallbackGroup::SharedPtr service_group_;
 
     drone_swarm_msgs::msg::DroneStatus status_msg_;
     rclcpp::Publisher<drone_swarm_msgs::msg::DroneStatus>::SharedPtr publisher_;
