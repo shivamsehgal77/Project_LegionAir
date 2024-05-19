@@ -149,14 +149,14 @@ void OffboardControl::target_position_callback(const drone_swarm_msgs::msg::Move
 	y_position = msg->target_pos_y.data;
 	alpha_yaw = msg->alpha.data;
 	land_var = msg->land.data;
-	RCLCPP_INFO_STREAM(this->get_logger(), "Received position: x=" << x_position << " y=" << y_position << " alpha=" << alpha_yaw);
+	// RCLCPP_INFO_STREAM(this->get_logger(), "Received position: x=" << x_position << " y=" << y_position << " alpha=" << alpha_yaw);
 }
 
 void OffboardControl::timer_callback() {
 	if (!vehicle_mode_offboard_) {
-		return;
+		publish_offboard_control_mode();
 	}
-	publish_offboard_control_mode();
+	
 	if (offboard_setpoint_counter_ == 50) {
 		// Change to Offboard mode after 50 setpoints (1s)
 		// this->engage_offBoard_mode();
@@ -185,8 +185,8 @@ void OffboardControl::timer_callback() {
 void OffboardControl::feedback_position_callback(const px4_msgs::msg::VehicleLocalPosition::SharedPtr msg)
 {
 	VehicleLocalPosition vehicle_local_position = *msg;
-	RCLCPP_INFO_STREAM(this->get_logger(), "I heard something in feedback_position_callback");
-	RCLCPP_INFO_STREAM(this->get_logger(), "Feedback position: x=" << vehicle_local_position.x << " y=" << vehicle_local_position.y << " z=" << vehicle_local_position.z);
+	// RCLCPP_INFO_STREAM(this->get_logger(), "I heard something in feedback_position_callback");
+	// RCLCPP_INFO_STREAM(this->get_logger(), "Feedback position: x=" << vehicle_local_position.x << " y=" << vehicle_local_position.y << " z=" << vehicle_local_position.z);
 	x_feedback = vehicle_local_position.x;
 	y_feedback = vehicle_local_position.y;
 }
