@@ -221,7 +221,7 @@ void DroneNode::handle_move_drone_request(///< Handle the request from the servi
 
 void DroneNode::set_anchor_and_neighbours_response_callback(
     rclcpp::Client<SetAnchorAndNeighbours>::SharedFuture future) {
-  auto status = future.wait_for(1s);
+  auto status = future.wait_for(10s);
   if (status == std::future_status::ready) {
     auto result = static_cast<int>(future.get()->done);
     // print_profile(result);
@@ -230,7 +230,7 @@ void DroneNode::set_anchor_and_neighbours_response_callback(
 
 void DroneNode::calc_angle_response_callback(
     rclcpp::Client<CalcAngle>::SharedFuture future) {
-  auto status = future.wait_for(1s);
+  auto status = future.wait_for(10s);
   if (status == std::future_status::ready) {
     auto result = static_cast<int>(future.get()->received);
     // print_profile(result);
