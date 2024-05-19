@@ -24,9 +24,9 @@ void DroneNode::handle_drop_done_request(///< Handle the request from the servic
         rmw_qos_profile_services_default,  // qos profile
         mutex_group_                       // callback group
     );
-    // auto result_future_right = sync_client_right->async_send_request(right_neighbour_request,
-    // std::bind(&DroneNode::set_anchor_and_neighbours_response_callback, this, std::placeholders::_1));
-    auto result_future_right = sync_client_right->async_send_request(right_neighbour_request);
+    auto result_future_right = sync_client_right->async_send_request(right_neighbour_request,
+    std::bind(&DroneNode::set_anchor_and_neighbours_response_callback, this, std::placeholders::_1));
+    // auto result_future_right = sync_client_right->async_send_request(right_neighbour_request);
 
     auto left_neighbour_request = std::make_shared<SetAnchorAndNeighbours::Request>();///< Create a request for the left neighbor.
     left_neighbour_request->anchor = true;///< Set the anchor status to false.
@@ -221,7 +221,7 @@ void DroneNode::handle_move_drone_request(///< Handle the request from the servi
 
 void DroneNode::set_anchor_and_neighbours_response_callback(
     rclcpp::Client<SetAnchorAndNeighbours>::SharedFuture future) {
-  auto status = future.wait_for(0.01s);
+  auto status = future.wait_for(0.1s);
   if (status == std::future_status::ready) {
     auto result = static_cast<int>(future.get()->done);
     // print_profile(result);
@@ -230,7 +230,7 @@ void DroneNode::set_anchor_and_neighbours_response_callback(
 
 void DroneNode::calc_angle_response_callback(
     rclcpp::Client<CalcAngle>::SharedFuture future) {
-  auto status = future.wait_for(0.01s);
+  auto status = future.wait_for(0.1s);
   if (status == std::future_status::ready) {
     auto result = static_cast<int>(future.get()->received);
     // print_profile(result);
