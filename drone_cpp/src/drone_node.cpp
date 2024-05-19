@@ -111,8 +111,8 @@ void DroneNode::handle_anchor_and_neighbours_request(///< Handle the request fro
              rmw_qos_profile_services_default,  // qos profile
              mutex_group_3_                       // callback group
          );
-        // auto result_future_right = sync_client_right->async_send_request(right_neighbour_request,std::bind(&DroneNode::calc_angle_response_callback, this, std::placeholders::_1));
-        auto result_future_right = sync_client_right->async_send_request(right_neighbour_request);
+        auto result_future_right = sync_client_right->async_send_request(right_neighbour_request,std::bind(&DroneNode::calc_angle_response_callback, this, std::placeholders::_1));
+        // auto result_future_right = sync_client_right->async_send_request(right_neighbour_request);
         RCLCPP_INFO(this->get_logger(), "Calc angle service request sent from anchor{%d} to neighbour right{%d}",id_, neighbour_right_);///< Log the received angle.
         
     //     auto sync_client_left = this->create_client<SetAnchorAndNeighbours>(service_name_calc_angle);///< Create a client for the left neighbor.
@@ -189,8 +189,8 @@ void DroneNode::handle_calc_angle(///< Handle the request from the service.
              rmw_qos_profile_services_default,  // qos profile
              mutex_group_2_                       // callback group
          );
-        // auto result_future_right = sync_client_right->async_send_request(right_neighbour_request,std::bind(&DroneNode::calc_angle_response_callback, this, std::placeholders::_1));
-        auto result_future_right = sync_client_right->async_send_request(right_neighbour_request);
+        auto result_future_right = sync_client_right->async_send_request(right_neighbour_request,std::bind(&DroneNode::calc_angle_response_callback, this, std::placeholders::_1));
+        // auto result_future_right = sync_client_right->async_send_request(right_neighbour_request);
         
         RCLCPP_INFO(this->get_logger(), "Calc angle request sent %d", neighbour_right_);///< Log the received angle.
     response->received = true;///< Set the response to true.
