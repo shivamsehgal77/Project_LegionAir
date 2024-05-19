@@ -150,6 +150,9 @@ void DroneNode::handle_calc_angle(///< Handle the request from the service.
         //Print the target_phase_angel_
         RCLCPP_INFO(this->get_logger(), "Drone %d target angle %f", id_, target_phase_angel_);///< Log the received angle.
         double diff_angle = abs(target_angle - phase_angel_);///< Calculate the difference in angle.
+        if (diff_angle > 180) {
+            diff_angle = 360 - diff_angle;
+        }
         double targ;
         if((target_angle +inc)>360)
         {
