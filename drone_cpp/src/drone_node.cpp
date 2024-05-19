@@ -39,9 +39,9 @@ void DroneNode::handle_drop_done_request(///< Handle the request from the servic
         rmw_qos_profile_services_default,  // qos profile
         mutex_group_                       // callback group
     );
-    // auto result_future_left = sync_client_left->async_send_request(left_neighbour_request,
-    // std::bind(&DroneNode::set_anchor_and_neighbours_response_callback, this, std::placeholders::_1));
-    auto result_future_left = sync_client_left->async_send_request(left_neighbour_request);
+    auto result_future_left = sync_client_left->async_send_request(left_neighbour_request,
+    std::bind(&DroneNode::set_anchor_and_neighbours_response_callback, this, std::placeholders::_1));
+    // auto result_future_left = sync_client_left->async_send_request(left_neighbour_request);
     land_ = true;///< Set the land status to true.
 
 
