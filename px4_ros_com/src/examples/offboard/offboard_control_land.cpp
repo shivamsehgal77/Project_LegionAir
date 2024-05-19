@@ -155,7 +155,7 @@ void OffboardControl::timer_callback() {
 		this->engage_offBoard_mode();
 		
 		// Arm the vehicle
-		this->arm();
+		// this->arm();
 	}
 	if (offboard_setpoint_counter_ == 3550){
 		// Land and cancel timer after (11s)
