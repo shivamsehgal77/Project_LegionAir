@@ -60,9 +60,17 @@ void DroneNode::handle_drop_done_request(///< Handle the request from the servic
     // auto result_future_left = sync_client_left->async_send_request(left_neighbour_request,
     // std::bind(&DroneNode::set_anchor_and_neighbours_response_callback, this, std::placeholders::_1));
     auto result_future_left = sync_client_left->async_send_request(left_neighbour_request);
+    // Note the tiee here and than run the while loop for 5 seconds by measuring the time difference and
+    // than break the loop if the time difference is greater than 5 seconds
+    std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
     while(rclcpp::ok() && !(result_future_left.wait_for(1s) == std::future_status::ready)) {
         RCLCPP_INFO(this->get_logger(), "Waiting for the left neighbour to set anchor and neighbours");
+        if (std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - begin).count() > 0.5)
+        {
+            break;
+        }
     }
+    
     land_ = true;///< Set the land status to true.
 
 
@@ -142,8 +150,13 @@ void DroneNode::handle_anchor_and_neighbours_request(///< Handle the request fro
         }
         // auto result_future_right = sync_client_right->async_send_request(right_neighbour_request,std::bind(&DroneNode::calc_angle_response_callback, this, std::placeholders::_1));
         auto result_future_right = sync_client_right->async_send_request(right_neighbour_request);
+        std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
         while(rclcpp::ok() && !(result_future_right.wait_for(1s) == std::future_status::ready)) {
             RCLCPP_INFO(this->get_logger(), "Waiting for the right neighbour to calculate angle");
+            if (std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - begin).count() > 0.5)
+            {
+                break;
+            }
         }
         RCLCPP_INFO(this->get_logger(), "Calc angle service request sent from anchor{%d} to neighbour right{%d}",id_, neighbour_right_);///< Log the received angle.
         
@@ -231,8 +244,13 @@ void DroneNode::handle_calc_angle(///< Handle the request from the service.
         }
         // auto result_future_right = sync_client_right->async_send_request(right_neighbour_request,std::bind(&DroneNode::calc_angle_response_callback, this, std::placeholders::_1));
         auto result_future_right = sync_client_right->async_send_request(right_neighbour_request);
+        std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
         while(rclcpp::ok() && !(result_future_right.wait_for(1s) == std::future_status::ready)) {
             RCLCPP_INFO(this->get_logger(), "Waiting for the right neighbour to calculate angle");
+            if (std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - begin).count() > 0.5)
+            {
+                break;
+            }
         }
         
         RCLCPP_INFO(this->get_logger(), "Calc angle request sent %d", neighbour_right_);///< Log the received angle.
@@ -264,35 +282,51 @@ void DroneNode::handle_move_drone_request(///< Handle the request from the servi
 
 void DroneNode::set_anchor_and_neighbours_response_callback(
     rclcpp::Client<SetAnchorAndNeighbours>::SharedFuture future) {
-  auto status = future.wait_for(2.0s);
-  if (status == std::future_status::ready) {
-    RCLCPP_INFO_STREAM(this->get_logger(), "I am at anchor and neighbour status ready");
-    auto result = future.get();
-    if (result->done) {
-      RCLCPP_INFO_STREAM(this->get_logger(), "Successfully set anchor and neighbours");
-    } else {
-      RCLCPP_ERROR_STREAM(this->get_logger(), "Failed to set anchor and neighbours");
+//   auto status = future.wait_for(2.0s);
+//   if (status == std::future_status::ready) {
+//     RCLCPP_INFO_STREAM(this->get_logger(), "I am at anchor and neighbour status ready");
+//     auto result = future.get();
+//     if (result->done) {
+//       RCLCPP_INFO_STREAM(this->get_logger(), "Successfully set anchor and neighbours");
+//     } else {
+//       RCLCPP_ERROR_STREAM(this->get_logger(), "Failed to set anchor and neighbours");
+//     }
+//   } else {
+//     RCLCPP_ERROR_STREAM(this->get_logger(), "Anchor and Neighbor setting Service call failed");
+//   }
+    std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+    while(rclcpp::ok() && !(future.wait_for(1s) == std::future_status::ready)) {
+        RCLCPP_INFO(this->get_logger(), "Waiting for the left neighbour to set anchor and neighbours");
+        if (std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - begin).count() > 1.0)
+        {
+            break;
+        }
     }
-  } else {
-    RCLCPP_ERROR_STREAM(this->get_logger(), "Anchor and Neighbor setting Service call failed");
-  }
 }
 
 void DroneNode::calc_angle_response_callback(
     rclcpp::Client<CalcAngle>::SharedFuture future) {
-  auto status = future.wait_for(2.0s);
-  if (status == std::future_status::ready) {
-    RCLCPP_INFO_STREAM(this->get_logger(), "I am at Calc angle status ready");
-    auto result = future.get();
+//   auto status = future.wait_for(2.0s);
+//   if (status == std::future_status::ready) {
+//     RCLCPP_INFO_STREAM(this->get_logger(), "I am at Calc angle status ready");
+//     auto result = future.get();
 
-    if (result->received) {
-      RCLCPP_INFO_STREAM(this->get_logger(), "Successfully received angle");
-    } else {
-      RCLCPP_ERROR_STREAM(this->get_logger(), "Failed to receive angle");
+//     if (result->received) {
+//       RCLCPP_INFO_STREAM(this->get_logger(), "Successfully received angle");
+//     } else {
+//       RCLCPP_ERROR_STREAM(this->get_logger(), "Failed to receive angle");
+//     }
+//   } else {
+//     RCLCPP_ERROR_STREAM(this->get_logger(), "calc angle Service call failed");
+//   }
+    std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+    while(rclcpp::ok() && !(future.wait_for(1s) == std::future_status::ready)) {
+        RCLCPP_INFO(this->get_logger(), "Waiting for the calc angle response");
+        if (std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - begin).count() > 1.0)
+        {
+            break;
+        }
     }
-  } else {
-    RCLCPP_ERROR_STREAM(this->get_logger(), "calc angle Service call failed");
-  }
 }
 
 void DroneNode::callback_left(const drone_swarm_msgs::msg::DroneStatus::SharedPtr msg)///< Callback function for the left neighbor.
