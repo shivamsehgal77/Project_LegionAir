@@ -99,7 +99,7 @@ public:
 		offboard_setpoint_counter_ = 0;
 		// position controller runs at 50Hz
 		timer_ = this->create_wall_timer(20ms, std::bind(&OffboardControl::timer_callback, this), moving_callback_group_);
-		vehicle_status_sub_ = this->create_subscription<px4_msgs::msg::VehicleStatus>(px4_namespace+"/fmu/out/vehicle_status", qos_assured, std::bind(&OffboardControl::status_callback, this, std::placeholders::_1), moving_callback_group_);
+		vehicle_status_sub_ = this->create_subscription<px4_msgs::msg::VehicleStatus>(px4_namespace+"/fmu/out/vehicle_status", qos_assured, std::bind(&OffboardControl::status_callback, this, std::placeholders::_1), moving_options);
 	}
 	void status_callback(const px4_msgs::msg::VehicleStatus::SharedPtr msg);
 	void arm();
