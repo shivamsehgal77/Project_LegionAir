@@ -48,9 +48,9 @@ ament_target_dependencies(sensor_combined_listener rclcpp px4_msgs)
 install(TARGETS sensor_combined_listener DESTINATION lib/${PROJECT_NAME})
 
 # examples/listeners/vehicle_gps_position_listener
-add_executable(vehicle_gps_position_listener src/examples/listeners/vehicle_gps_position_listener.cpp)
-ament_target_dependencies(vehicle_gps_position_listener rclcpp px4_msgs)
-install(TARGETS vehicle_gps_position_listener DESTINATION lib/${PROJECT_NAME})
+#add_executable(vehicle_gps_position_listener src/examples/listeners/vehicle_gps_position_listener.cpp)
+#ament_target_dependencies(vehicle_gps_position_listener rclcpp px4_msgs)
+#install(TARGETS vehicle_gps_position_listener DESTINATION lib/${PROJECT_NAME})
 
 # examples/advertisers/debug_vect_advertiser
 add_executable(debug_vect_advertiser src/examples/advertisers/debug_vect_advertiser.cpp)
@@ -68,9 +68,9 @@ ament_target_dependencies(offboard_control_land rclcpp px4_msgs drone_swarm_msgs
 install(TARGETS offboard_control_land DESTINATION lib/${PROJECT_NAME})
 
 # examples/offboard/offboard_control_srv
-add_executable(offboard_control_srv src/examples/offboard/offboard_control_srv.cpp)
-ament_target_dependencies(offboard_control_srv rclcpp px4_msgs)
-install(TARGETS offboard_control_srv DESTINATION lib/${PROJECT_NAME})
+#add_executable(offboard_control_srv src/examples/offboard/offboard_control_srv.cpp)
+#ament_target_dependencies(offboard_control_srv rclcpp px4_msgs)
+#install(TARGETS offboard_control_srv DESTINATION lib/${PROJECT_NAME})
 
 
 ############

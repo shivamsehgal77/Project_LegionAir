@@ -48,9 +48,12 @@ class OffboardControl(Node):
     def vehicle_local_position_callback(self, vehicle_local_position):
         """Callback function for vehicle_local_position topic subscriber."""
         self.vehicle_local_position = vehicle_local_position
-        self.get_logger().info("Position x from feedback: ", self.vehicle_local_position.x)
-        self.get_logger().info("Position y from feedback: ", self.vehicle_local_position.y)
-        self.get_logger().info("Position z from feedback: ", self.vehicle_local_position.z)
+        self.get_logger().info("Position x from feedback: ") 
+        print(self.vehicle_local_position.x)
+        self.get_logger().info("Position y from feedback: ") 
+        print( self.vehicle_local_position.y)
+        self.get_logger().info("Position z from feedback: ") 
+        print(self.vehicle_local_position.z)
 
     def vehicle_status_callback(self, vehicle_status):
         """Callback function for vehicle_status topic subscriber."""
