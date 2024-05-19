@@ -137,6 +137,7 @@ private:
 	void publish_offboard_control_mode();
 	void publish_trajectory_setpoint(float x, float y);
 	void publish_vehicle_command(VehicleCommand msg);
+	void publish_offboard_control_heartbeat_signal();
 };
 
 void OffboardControl::target_position_callback(const drone_swarm_msgs::msg::MoveDrone::SharedPtr msg)
@@ -149,6 +150,7 @@ void OffboardControl::target_position_callback(const drone_swarm_msgs::msg::Move
 }
 
 void OffboardControl::timer_callback() {
+	publish_offboard_control_heartbeat_signal();
 	publish_offboard_control_mode();
 	if (offboard_setpoint_counter_ == 50) {
 		// Change to Offboard mode after 50 setpoints (1s)
@@ -288,6 +290,19 @@ void OffboardControl::publish_vehicle_command(VehicleCommand msg)
 	msg.timestamp = this->get_clock()->now().nanoseconds() / 1000;
 	
 	vehicle_command_publisher_->publish(msg);
+}
+
+void OffboardControl::publish_offboard_control_heartbeat_signal()
+{
+	// Send a heartbeat signal to the offboard mode
+	OffboardControlMode msg{};
+	msg.position = True;
+	msg.velocity = False;
+	msg.acceleration = False;
+	msg.attitude = False;
+	msg.body_rate = False;
+	msg.timestamp = this->get_clock()->now().nanoseconds() / 1000;
+	offboard_control_mode_publisher_->publish(msg);
 }
 
 int main(int argc, char *argv[])
