@@ -49,6 +49,7 @@
 #include <px4_msgs/msg/vehicle_control_mode.hpp>
 #include <px4_msgs/msg/vehicle_local_position.hpp>
 #include <px4_msgs/msg/vehicle_control_mode.hpp>
+#include <px4_msgs/msg/vehicle_status.hpp>
 #include <drone_swarm_msgs/msg/move_drone.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp/qos.hpp>
@@ -98,8 +99,9 @@ public:
 		offboard_setpoint_counter_ = 0;
 		// position controller runs at 50Hz
 		timer_ = this->create_wall_timer(20ms, std::bind(&OffboardControl::timer_callback, this), moving_callback_group_);
+		vehicle_status_sub_ = this->create_subscription<px4_msgs::msg::VehicleStatus>(px4_namespace+"/fmu/out/vehicle_status", qos_assured, std::bind(&OffboardControl::status_callback, this, std::placeholders::_1), moving_callback_group_);
 	}
-
+	void status_callback(const px4_msgs::msg::VehicleStatus::SharedPtr msg);
 	void arm();
 	void disarm();
 	void land();
@@ -114,7 +116,7 @@ public:
 	bool land_var = false;
 	float alpha_yaw = 0.0;
 	// ID of the drone
-	int id_ = 0;
+	int id_ = 1;
 	// Current position feedback
 	float x_feedback = 0.0;
 	float y_feedback = 0.0;
@@ -124,6 +126,7 @@ public:
 	bool vehicle_mode_offboard_ = false;
 
 private:
+    rclcpp::Subscription<px4_msgs::msg::VehicleStatus>::SharedPtr vehicle_status_sub_;
 	rclcpp::TimerBase::SharedPtr timer_;
 
 	rclcpp::Publisher<OffboardControlMode>::SharedPtr offboard_control_mode_publisher_;
@@ -153,16 +156,13 @@ void OffboardControl::target_position_callback(const drone_swarm_msgs::msg::Move
 }
 
 void OffboardControl::timer_callback() {
-	if (!vehicle_mode_offboard_) {
-		publish_offboard_control_mode();
-	}
-	
+	RCLCPP_INFO_STREAM(this->get_logger(), "Offboard setpoint counter: " << offboard_setpoint_counter_);	
 	if (offboard_setpoint_counter_ == 50) {
 		// Change to Offboard mode after 50 setpoints (1s)
-		// this->engage_offBoard_mode();
+		this->engage_offBoard_mode();
 		
 		// Arm the vehicle
-		// this->arm();
+		this->arm();
 	}
 	if (offboard_setpoint_counter_ == 5550){
 		// Land and cancel timer after (11s)
@@ -170,9 +170,12 @@ void OffboardControl::timer_callback() {
 
 		this->timer_->cancel();
 	}
-	if (offboard_setpoint_counter_ > 500) {
+	if (offboard_setpoint_counter_ < 10000) {
 		// offboard_control_mode needs to be paired with trajectory_setpoint
-		publish_trajectory_setpoint(x_position, y_position);
+		publish_offboard_control_mode();
+		if (vehicle_mode_offboard_) {
+			publish_trajectory_setpoint(x_target, y_target);
+		}
 		if (land_var) {
 			this->land();
 			this->timer_->cancel();
@@ -189,6 +192,12 @@ void OffboardControl::feedback_position_callback(const px4_msgs::msg::VehicleLoc
 	// RCLCPP_INFO_STREAM(this->get_logger(), "Feedback position: x=" << vehicle_local_position.x << " y=" << vehicle_local_position.y << " z=" << vehicle_local_position.z);
 	x_feedback = vehicle_local_position.x;
 	y_feedback = vehicle_local_position.y;
+}
+
+void OffboardControl::status_callback(const px4_msgs::msg::VehicleStatus::SharedPtr msg)
+{
+	px4_msgs::msg::VehicleStatus vehicle_status = *msg;
+	vehicle_mode_offboard_ = vehicle_status.nav_state == px4_msgs::msg::VehicleStatus::NAVIGATION_STATE_OFFBOARD;
 }
 
 /**
