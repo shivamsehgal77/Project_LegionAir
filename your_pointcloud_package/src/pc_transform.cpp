@@ -85,10 +85,10 @@ private:
     pcl::PassThrough<pcl::PointXYZ> pass;
     pass.setInputCloud(cloud);
     pass.setFilterFieldName("z");
-    pass.setFilterLimits(0.2, 1.5);
+    pass.setFilterLimits(0.4, 1.6);
     pass.filter(*cloud_filtered);
 
-    RCLCPP_INFO(this->get_logger(), "Size of the filtered point cloud: %ld", cloud_filtered->size());
+    // RCLCPP_INFO(this->get_logger(), "Size of the filtered point cloud: %ld", cloud_filtered->size());
 
     try {
       geometry_msgs::msg::TransformStamped transform_stamped;

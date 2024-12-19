@@ -26,6 +26,7 @@ find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(rclpy REQUIRED)
 find_package(drone_swarm_msgs REQUIRED)
+find_package(std_msgs REQUIRED)
 
 #################
 # Setup targets #
@@ -58,9 +59,14 @@ ament_target_dependencies(debug_vect_advertiser rclcpp px4_msgs)
 install(TARGETS debug_vect_advertiser DESTINATION lib/${PROJECT_NAME})
 
 # examples/offboard/offboard_control
-add_executable(offboard_control src/examples/offboard/offboard_control.cpp)
-ament_target_dependencies(offboard_control rclcpp px4_msgs)
-install(TARGETS offboard_control DESTINATION lib/${PROJECT_NAME})
+add_executable(offboard_control_constant_velocity src/examples/offboard/offboard_control_constant_velocity.cpp)
+ament_target_dependencies(offboard_control_constant_velocity rclcpp px4_msgs geometry_msgs sensor_msgs std_msgs)
+install(TARGETS offboard_control_constant_velocity DESTINATION lib/${PROJECT_NAME})
+
+
+add_executable(offboard_control_velocity_tracking src/examples/offboard/offboard_control_velocity_tracking.cpp)
+ament_target_dependencies(offboard_control_velocity_tracking rclcpp px4_msgs geometry_msgs sensor_msgs std_msgs)
+install(TARGETS offboard_control_velocity_tracking DESTINATION lib/${PROJECT_NAME})
 
 # examples/offboard/offboard_control_land
 add_executable(offboard_control_land src/examples/offboard/offboard_control_land.cpp)
@@ -97,7 +103,7 @@ install(TARGETS frame_transforms
 )
 
 # Install launch files.
-install(DIRECTORY launch DESTINATION share/${PROJECT_NAME}/)
+install(DIRECTORY launch config DESTINATION share/${PROJECT_NAME}/)
 
 # Install tests
 install(DIRECTORY test DESTINATION share/${PROJECT_NAME}/)

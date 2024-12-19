@@ -16,40 +16,40 @@ from ament_index_python.packages import get_package_share_path
 
 
 def generate_launch_description():
-    tflite_node_params = PathJoinSubstitution(
-        [FindPackageShare('tflite_prop_detection'), "config", "ns_conf.yaml"]
+    offboard_node_params = PathJoinSubstitution(
+        [FindPackageShare('px4_ros_com'), "config", "ns_conf.yaml"]
     )
-    pack_path = os.path.join(get_package_share_path('tflite_prop_detection'), "config", "ns_conf.yaml")
+    pack_path = os.path.join(get_package_share_path('px4_ros_com'), "config", "ns_conf.yaml")
     print(pack_path)
     with open(pack_path) as file:
         config = yaml.safe_load(file)
 
     # Extract the id parameter
-    id_value = config['tflite_prop_detection']['ros__parameters']['id']
+    id_value = config['offboard_control_node']['ros__parameters']['id']
     ld = LaunchDescription()
     
-    tf_static_node = Node(
-        package="your_tf_package",
-        executable="tf_publisher_cpp",
-        namespace='uav_'+str(id_value),
+    # tf_static_node = Node(
+    #     package="your_tf_package",
+    #     executable="tf_publisher_cpp",
+    #     namespace='uav_'+str(id_value),
+    #     output="screen",
+    # )
+
+    offboard_control_node = Node(
+        package="px4_ros_com", 
+        executable="offboard_control_constant_velocity", 
         output="screen",
+        namespace='/uav_'+str(id_value),
+        parameters=[offboard_node_params]
     )
 
-    pc_transform_node = Node(
-        package="your_pointcloud_package", 
-        executable="pointcloud_transformer", 
-        output="screen",
-        namespace='uav_'+str(id_value),
-        parameters=[tflite_node_params]
-    )
-
-    obj_det_node = Node(
-        package="tflite_prop_detection", 
-        executable="tflite_prop_detection_cpp", 
-        output="screen",
-        namespace='uav_'+str(id_value),
-        parameters=[tflite_node_params]
-    )
+    # obj_det_node = Node(
+    #     package="tflite_prop_detection", 
+    #     executable="tflite_prop_detection_cpp", 
+    #     output="screen",
+    #     namespace='uav_'+str(id_value),
+    #     parameters=[tflite_node_params]
+    # )
     
     
     
@@ -79,25 +79,25 @@ def generate_launch_description():
     # )
     
     # # Add nodes with delay
-    ld.add_action(TimerAction(
-        period=0.0,
-        actions=[tf_static_node]
-    ))
-    ld.add_action(TimerAction(
-        period=0.0,
-        actions=[pc_transform_node]
-    ))
-    ld.add_action(TimerAction(
-        period=0.0,
-        actions=[obj_det_node]
-    ))
+    # ld.add_action(TimerAction(
+    #     period=0.0,
+    #     actions=[tf_static_node]
+    # ))
+    # ld.add_action(TimerAction(
+    #     period=0.0,
+    #     actions=[pc_transform_node]
+    # ))
+    # ld.add_action(TimerAction(
+    #     period=0.0,
+    #     actions=[obj_det_node]
+    # ))
     # ld.add_action(TimerAction(
     #     period=2.0,
     #     actions=[kalman_filter_node]
     # ))
-    # ld.add_action(TimerAction(
-    #     period=4.0,
-    #     actions=[offboard_control_node]
-    # ))
+    ld.add_action(TimerAction(
+        period=0.0,
+        actions=[offboard_control_node]
+    ))
 
     return ld

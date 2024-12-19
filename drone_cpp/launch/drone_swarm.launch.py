@@ -37,7 +37,7 @@ def generate_launch_description():
             
     )
     print("Drone zero is created")
-    
+    """
     drone_node_cpp_1=Node(
             package='drone_cpp',
             name='drone_one',
@@ -65,9 +65,10 @@ def generate_launch_description():
     
     # Add the actions to the launch description
     # ld.add_action(cmd_line_parameter)
+    """
     ld.add_action(drone_node_cpp_0)
-    ld.add_action(drone_node_cpp_1)
-    ld.add_action(drone_node_cpp_2)
-    ld.add_action(drone_node_cpp_3)
+    #ld.add_action(drone_node_cpp_1)
+    #ld.add_action(drone_node_cpp_2)
+    #ld.add_action(drone_node_cpp_3)
   
     return ld

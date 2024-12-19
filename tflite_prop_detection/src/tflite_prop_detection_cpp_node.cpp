@@ -32,21 +32,10 @@ public:
                                 image_width_(1024),
                                 image_height_(768) {
         node_namespace_ = this->get_namespace();
-        RCLCPP_INFO_STREAM(this->get_logger(), "Namespace in tflite_prop_det: " << node_namespace_);
-        //----------------------------------------------
-        // Parameters
-        //----------------------------------------------
-        // rcl_interfaces::msg::ParameterDescriptor descriptor_id;
-        // descriptor_id.description = "Drone ID";
-        // descriptor_id.type = rcl_interfaces::msg::ParameterType::PARAMETER_INTEGER;
-        // if (!node_namespace_.empty() && node_namespace_[0] == '/') {
-        //     param_namespace_ = node_namespace_.substr(1);
-        // }
-        // this->declare_parameter(param_namespace_+".id", 0, descriptor_id);
-        // id_ = this->get_parameter(param_namespace_+".id").as_int();
-        // RCLCPP_INFO_STREAM(this->get_logger(), "Drone ID in tflite_prop_detection node: " << id_);
+       
         std::string topic_name_tflite = node_namespace_ + "/tflite_data";
         std::string topic_name_pcl = node_namespace_ + "/rgb_pcl";
+
         sub_tflite_data_ = this->create_subscription<voxl_msgs::msg::Aidetection>(
             topic_name_tflite, rclcpp::QoS(rclcpp::KeepLast(1)).best_effort().durability_volatile(), std::bind(&TFLitePropDetectionNode::aidectionCallback, this, std::placeholders::_1));
 
@@ -54,13 +43,15 @@ public:
             topic_name_pcl, rclcpp::QoS(rclcpp::KeepLast(1)).best_effort().durability_volatile(), std::bind(&TFLitePropDetectionNode::pclCallback, this, std::placeholders::_1));
 
         pub_object_centroid_ = this->create_publisher<geometry_msgs::msg::PointStamped>(
-            "detections", 15);
+            "detections", rclcpp::QoS(10).best_effort());
 
         pub_object_available_ = this->create_publisher<std_msgs::msg::Bool>(
-            "object_available", 15);
+            "object_available", rclcpp::QoS(10).best_effort());
 
         last_detection_time_ = this->now();
         last_pcl_callback_time_ = this->now();
+
+
 	    K_pcl_ << 756.3252575983485, 0, 0.0, 0,
                   0, 751.995016895224, 0.0, 0,
                   0, 0, 1, 0;
@@ -70,9 +61,38 @@ public:
     }
 
 private:
+
+    // Callback function for the tflite_data topic
     void aidectionCallback(const voxl_msgs::msg::Aidetection::SharedPtr msg) {
+        
+        // save the bounding box coordinates
+        // note the last time of detection
+        if (msg->class_confidence > 0) {
+            last_detection_time_ = this->now();
+            bbox_x_max_ = msg->x_max;
+            bbox_x_min_ = msg->x_min;
+            bbox_y_max_ = msg->y_max;
+            bbox_y_min_ = msg->y_min;
+        }
+
+        // if valid bounding box coordinates are available, publish that the object is available
+        if (bbox_x_max_ > 0 && bbox_x_min_ > 0 && bbox_y_max_ > 0 && bbox_y_min_ > 0) {
+            std_msgs::msg::Bool available;
+            available.data = true;
+            pub_object_available_->publish(available);
+        }
+    }
+
+    // Callback function for the pointcloud2 topic
+    void pclCallback(const sensor_msgs::msg::PointCloud2::SharedPtr msg) {
+        double processing_fps = 1.0 / (this->now() - last_pcl_callback_time_).seconds();
+        // std::cout << "Processing FPS: " << processing_fps << std::endl;
+
+        // if the detection is not available for more than 0.07 seconds, set the bounding box coordinates to negative max value
+        // and publish that the object is not available
         if ((this->now() - last_detection_time_).seconds() > 0.07) {
             // Set bbox coordinates to negative max value if the detection is not available
+            // std::cout << "Detection not available" << std::endl;
             bbox_x_max_ = -std::numeric_limits<int>::max();
             bbox_x_min_ = -std::numeric_limits<int>::max();
             bbox_y_max_ = -std::numeric_limits<int>::max();
@@ -82,34 +102,20 @@ private:
             pub_object_available_->publish(available);
         }
 
-        if (bbox_x_max_ > 0 && bbox_x_min_ > 0 && bbox_y_max_ > 0 && bbox_y_min_ > 0) {
-            std_msgs::msg::Bool available;
-            std::cout << "Bbox values: " << bbox_x_min_ << " " << bbox_y_min_ << " " << bbox_x_max_ << " " << bbox_y_max_ << std::endl;
-            available.data = true;
-            pub_object_available_->publish(available);
-        }
 
-        if (msg->class_confidence > 0) {
-            last_detection_time_ = this->now();
-            bbox_x_max_ = msg->x_max;
-            bbox_x_min_ = msg->x_min;
-            bbox_y_max_ = msg->y_max;
-            bbox_y_min_ = msg->y_min;
-        }
-    }
-
-    void pclCallback(const sensor_msgs::msg::PointCloud2::SharedPtr msg) {
-        double processing_fps = 1.0 / (this->now() - last_pcl_callback_time_).seconds();
-        std::cout << "Processing FPS: " << processing_fps << std::endl;
-
+        // if the bounding box coordinates are not available, return
         if (bbox_x_max_ == -std::numeric_limits<int>::max() || bbox_x_min_ == -std::numeric_limits<int>::max() ||
             bbox_y_max_ == -std::numeric_limits<int>::max() || bbox_y_min_ == -std::numeric_limits<int>::max()) {
-            std::cout << "No bbox" << std::endl;
+            // std::cout << "No bbox" << std::endl;
             return;
         }
 
+        // Convert the pointcloud2 message to pcl pointcloud
         pcl::PointCloud<pcl::PointXYZ> cloud;
         pcl::fromROSMsg(*msg, cloud);
+
+        // create a 4XN matrix to store the points
+        // 1000 is multiplied to convert the points from meters to millimeters
         Eigen::MatrixXf points(4, cloud.size());
         int column_count = 0;
         for (size_t i = 0; i < cloud.size(); ++i) {
@@ -120,7 +126,13 @@ private:
             column_count++;
         }
         points.resize(4, column_count);
+
+        // Project the points to the image plane
         Eigen::MatrixXf projected_points;
+
+        // transformation for the points was done in the camera frame in your point cloud package
+        // using the transfomation created from body to world 
+        // the 3D points are in the camera frame, so we need to project them to the image plane
         projected_points = K_pcl_ * points;
         projected_points.row(0) = projected_points.row(0).array() / projected_points.row(2).array();
         projected_points.row(1) = projected_points.row(1).array() / projected_points.row(2).array();
@@ -138,7 +150,7 @@ private:
             }
         }
         
-        std::cout << "Count of filtered points: " << count_filtered_points << std::endl;
+        // std::cout << "Count of filtered points: " << count_filtered_points << std::endl;
         
         if (!filtered_points.empty()) {
             Eigen::Vector3f centroid(0.0, 0.0, 0.0);
@@ -150,12 +162,19 @@ private:
                 centroid += point;
             }
             centroid /= filtered_points.size();
-            std::cout << "Centroid: " << centroid << std::endl;
+
+            // Transform centroid from RDF to FRD
+            Eigen::Vector3f centroid_FRD;
+            centroid_FRD(0) = centroid(2);  // Forward in FRD
+            centroid_FRD(1) = centroid(0);  // Right in FRD
+            centroid_FRD(2) = centroid(1);  // Down in FRD
+            std::cout << "Centroid: " << centroid_FRD(0) << ", " << centroid_FRD(1) << ", " << centroid_FRD(2) << " filtererd point count" <<  count_filtered_points << std::endl;
+            // std::cout << "Centroid: " << centroid_FRD << std::endl;
             auto centroid_msg = std::make_shared<geometry_msgs::msg::PointStamped>();
             centroid_msg->header.stamp = this->now();
-            centroid_msg->point.x = centroid(0);
-            centroid_msg->point.y = centroid(1);
-            centroid_msg->point.z = centroid(2);
+            centroid_msg->point.x = centroid_FRD(0);
+            centroid_msg->point.y = centroid_FRD(1);
+            centroid_msg->point.z = centroid_FRD(2);
             pub_object_centroid_->publish(*centroid_msg);
             object_available_.data = true;
         }
@@ -184,6 +203,7 @@ private:
     int id_;
     std::string node_namespace_;
     std::string param_namespace_;
+    bool drone_detected_{false};
 };
 
 int main(int argc, char** argv) {

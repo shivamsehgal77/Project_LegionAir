@@ -116,7 +116,7 @@ public:
 	bool land_var = false;
 	float alpha_yaw = 0.0;
 	// ID of the drone
-	int id_ = 1;
+	int id_ = 0;
 	// Current position feedback
 	float x_feedback = 0.0;
 	float y_feedback = 0.0;
@@ -164,17 +164,17 @@ void OffboardControl::timer_callback() {
 		// Arm the vehicle
 		this->arm();
 	}
-	if (offboard_setpoint_counter_ == 5550){
+	if (offboard_setpoint_counter_ == 15550){
 		// Land and cancel timer after (11s)
 		this->land();
 
 		this->timer_->cancel();
 	}
-	if (offboard_setpoint_counter_ < 10000) {
+	if (offboard_setpoint_counter_ < 25000) {
 		// offboard_control_mode needs to be paired with trajectory_setpoint
 		publish_offboard_control_mode();
 		if (vehicle_mode_offboard_) {
-			publish_trajectory_setpoint(x_target, y_target);
+			publish_trajectory_setpoint(x_position, y_position);
 		}
 		if (land_var) {
 			this->land();
