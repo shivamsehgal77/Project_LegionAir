@@ -1,3 +1,16 @@
+/**
+ * @file pc_transform.cpp
+ * @brief Node that transforms point cloud data from TOF camera frame to body frame
+ * @authors Shivam Sehgal (ssehgal7@umd.edu)
+ *          Darshit Desai (darshit@umd.edu)
+ * @version 0.1
+ * @date 2024-02-17
+ *
+ * @copyright Copyright (c) 2024
+ *
+ */
+
+
 #include <rclcpp/rclcpp.hpp>
 #include <tf2_ros/transform_listener.h>
 #include <sensor_msgs/msg/point_cloud2.hpp>
@@ -12,75 +25,46 @@
 #include <pcl/filters/passthrough.h>
 #include <pcl/common/transforms.h>
 
-#include <sched.h>
 #include <cstring>
 #include <string>
 #include <stdexcept>
-#include <pthread.h>
-#include <cassert>
-#include <fstream>
-#include <thread>
 
-enum class CPUS : size_t {
-  CPU1,
-  CPU2,
-  CPU3,
-  CPU4,
-  CPU5,
-  CPU6,
-  CPU7,
-  CPU8
-};
 
-std::runtime_error getError(std::string msg, int result) {
-  return std::runtime_error(msg + " Reason:" + std::strerror(result));
-}
 
-void applyAffinity(const CPUS affCPU) {
-  cpu_set_t cpuset;
-  CPU_ZERO(&cpuset);
-  const auto aff = static_cast<std::underlying_type<CPUS>::type>(affCPU);
-  CPU_SET(aff, &cpuset);
-  auto result = pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &cpuset);
-  if (result != 0) {
-    throw getError("Failed to attach affinity", result);
-  }
-}
-
+// Node class that handles point cloud transformation from TOF camera frame to body frame
 class PointCloudTransformer : public rclcpp::Node {
 public:
   PointCloudTransformer() : Node("pc_transformer") {
+    // Initialize TF buffer and listener
     tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
     tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
+    
+    // Get node namespace for topic names
     node_namespace_ = this->get_namespace();
     RCLCPP_INFO_STREAM(this->get_logger(), "Namespace in pc_transform: " << node_namespace_);
-    // rcl_interfaces::msg::ParameterDescriptor descriptor_id;
-    // descriptor_id.description = "Drone ID";
-    // descriptor_id.type = rcl_interfaces::msg::ParameterType::PARAMETER_INTEGER;
-    // if (!node_namespace_.empty() && node_namespace_[0] == '/') {
-    //   param_namespace_ = node_namespace_.substr(1);
-    //   RCLCPP_INFO_STREAM(this->get_logger(), "Parameter namespace in pc_transform: " << param_namespace_);
-    // }
-    // this->declare_parameter(param_namespace_+".id", 0, descriptor_id);
-    // id_ = this->get_parameter(param_namespace_+".id").as_int();
-    // RCLCPP_INFO_STREAM(this->get_logger(), "Drone ID in pc_transform node: " << id_);
     std::string topic_name_tof = node_namespace_ + "/tof_pc";
+    
+    // Create subscriber for input point cloud
     pc_sub_ = this->create_subscription<sensor_msgs::msg::PointCloud2>(
         topic_name_tof, rclcpp::QoS(rclcpp::KeepLast(1)).best_effort().durability_volatile(), std::bind(&PointCloudTransformer::pc_callback, this, std::placeholders::_1));
+    
+    // Create publisher for transformed point cloud
     pc_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("rgb_pcl", rclcpp::SensorDataQoS());
 
+    // Initialize transform variables
     translation_vector = Eigen::Vector3d::Zero();
     q = Eigen::Quaterniond(0.0, 0.0, 0.0, 0.0);
     rotation_matrix = Eigen::Matrix3d::Zero();
-    filtered_size = 0;
-    remainder = 0;
-    division = 0;
   }
 
 private:
+  // Callback function for processing incoming point clouds
   void pc_callback(const sensor_msgs::msg::PointCloud2::SharedPtr pc_msg) {
+    // Convert ROS message to PCL point cloud
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
     pcl::fromROSMsg(*pc_msg, *cloud);
+    
+    // Filter points by z-coordinate (depth)
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered(new pcl::PointCloud<pcl::PointXYZ>);
     pcl::PassThrough<pcl::PointXYZ> pass;
     pass.setInputCloud(cloud);
@@ -88,11 +72,12 @@ private:
     pass.setFilterLimits(0.4, 1.6);
     pass.filter(*cloud_filtered);
 
-    // RCLCPP_INFO(this->get_logger(), "Size of the filtered point cloud: %ld", cloud_filtered->size());
-
     try {
+      // Look up transform from point cloud frame to target frame
       geometry_msgs::msg::TransformStamped transform_stamped;
       transform_stamped = tf_buffer_->lookupTransform("hires", pc_msg->header.frame_id, tf2::TimePointZero);
+      
+      // Extract translation and rotation from transform
       translation_vector[0] = transform_stamped.transform.translation.x;
       translation_vector[1] = transform_stamped.transform.translation.y;
       translation_vector[2] = transform_stamped.transform.translation.z;
@@ -100,13 +85,21 @@ private:
       tf_quat[1] = transform_stamped.transform.rotation.y;
       tf_quat[2] = transform_stamped.transform.rotation.z;
       tf_quat[3] = transform_stamped.transform.rotation.w;
+      
+      // Convert quaternion to rotation matrix
       q = Eigen::Quaterniond(tf_quat[3], tf_quat[0], tf_quat[1], tf_quat[2]);
       rotation_matrix = q.toRotationMatrix();
+      
+      // Create affine transform from translation and rotation
       Eigen::Affine3f transform = Eigen::Affine3f::Identity();
       transform.translation() << translation_vector[0], translation_vector[1], translation_vector[2];
       transform.rotate(rotation_matrix.cast<float>());
+      
+      // Apply transform to point cloud
       pcl::PointCloud<pcl::PointXYZ>::Ptr transformed_cloud(new pcl::PointCloud<pcl::PointXYZ>);
       pcl::transformPointCloud(*cloud_filtered, *transformed_cloud, transform);
+      
+      // Convert back to ROS message and publish
       sensor_msgs::msg::PointCloud2 transformed_pc;
       pcl::toROSMsg(*transformed_cloud, transformed_pc);
       transformed_pc.header.frame_id = "hires";
@@ -118,20 +111,20 @@ private:
   }
 
 private:
+  // TF buffer and listener for coordinate transforms
   std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
   std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
+  
+  // ROS publishers and subscribers
   rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr pc_sub_;
   rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pc_pub_;
+  
+  // Transform variables
   Eigen::Vector3d translation_vector;
   double tf_quat[4];
   Eigen::Quaterniond q;
   Eigen::Matrix3d rotation_matrix;
-  size_t filtered_size;
-  int remainder;
-  int division;
-  int id_;
   std::string node_namespace_;
-  std::string param_namespace_;
 };
 
 int main(int argc, char** argv) {
