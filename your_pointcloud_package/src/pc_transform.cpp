@@ -49,7 +49,8 @@ public:
         topic_name_tof, rclcpp::QoS(rclcpp::KeepLast(1)).best_effort().durability_volatile(), std::bind(&PointCloudTransformer::pc_callback, this, std::placeholders::_1));
     
     // Create publisher for transformed point cloud
-    pc_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("rgb_pcl", rclcpp::SensorDataQoS());
+    std::string topic_name_rgb = node_namespace_ + "/rgb_pcl";
+    pc_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>(topic_name_rgb, rclcpp::SensorDataQoS());
 
     // Initialize transform variables
     translation_vector = Eigen::Vector3d::Zero();
@@ -75,7 +76,7 @@ private:
     try {
       // Look up transform from point cloud frame to target frame
       geometry_msgs::msg::TransformStamped transform_stamped;
-      transform_stamped = tf_buffer_->lookupTransform("hires", pc_msg->header.frame_id, tf2::TimePointZero);
+      transform_stamped = tf_buffer_->lookupTransform(node_namespace_ + "/hires", pc_msg->header.frame_id, tf2::TimePointZero);
       
       // Extract translation and rotation from transform
       translation_vector[0] = transform_stamped.transform.translation.x;
@@ -102,7 +103,7 @@ private:
       // Convert back to ROS message and publish
       sensor_msgs::msg::PointCloud2 transformed_pc;
       pcl::toROSMsg(*transformed_cloud, transformed_pc);
-      transformed_pc.header.frame_id = "hires";
+      transformed_pc.header.frame_id = node_namespace_ + "/hires";
       pc_pub_->publish(transformed_pc);
     } catch (tf2::TransformException &ex) {
       RCLCPP_WARN(this->get_logger(), "Failure: %s\n", ex.what());

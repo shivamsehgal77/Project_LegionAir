@@ -17,20 +17,19 @@ from ament_index_python.packages import get_package_share_path
 
 def generate_launch_description():
 
-    offboard_node_params = PathJoinSubstitution(
-        [FindPackageShare('px4_ros_com'), "config", "ns_conf.yaml"]
-    )
-    pack_path = os.path.join(get_package_share_path('px4_ros_com'), "config", "ns_conf.yaml")
-    print(pack_path)
-    with open(pack_path) as file:
-        config = yaml.safe_load(file)
+    
 
     launch_tflite_package = os.path.join(get_package_share_path('tflite_prop_detection'),"launch","tflite_prop_detection.launch.py")
 
     include_tflite_package = IncludeLaunchDescription(PythonLaunchDescriptionSource(launch_tflite_package))
+    # Get namespace from environment variable
+    uav_namespace = os.getenv('UAV_NAMESPACE')
+    if uav_namespace is None:
+        raise RuntimeError("Environment variable UAV_NAMESPACE must be set (e.g., uav_1, uav_2, etc.)")
+    
+    # Add the forward slash prefix
+    uav_namespace = f"/{uav_namespace}"
 
-
-    id_value = config['offboard_control_node']['ros__parameters']['id']
     ld = LaunchDescription()
     
 
@@ -38,8 +37,7 @@ def generate_launch_description():
         package="px4_ros_com", 
         executable="offboard_control_constant_velocity", 
         output="screen",
-        namespace='/uav_'+str(id_value),
-        parameters=[offboard_node_params]
+        namespace=uav_namespace
     )
 
     ld.add_action(TimerAction(

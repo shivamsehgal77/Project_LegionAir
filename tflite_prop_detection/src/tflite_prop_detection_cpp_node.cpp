@@ -43,10 +43,10 @@ public:
             topic_name_pcl, rclcpp::QoS(rclcpp::KeepLast(1)).best_effort().durability_volatile(), std::bind(&TFLitePropDetectionNode::pclCallback, this, std::placeholders::_1));
 
         pub_object_centroid_ = this->create_publisher<geometry_msgs::msg::PointStamped>(
-            "detections", rclcpp::QoS(10).best_effort());
+            node_namespace_ + "/detections", rclcpp::QoS(10).best_effort());
 
         pub_object_available_ = this->create_publisher<std_msgs::msg::Bool>(
-            "object_available", rclcpp::QoS(10).best_effort());
+            node_namespace_ + "/object_available", rclcpp::QoS(10).best_effort());
 
         last_detection_time_ = this->now();
         last_pcl_callback_time_ = this->now();

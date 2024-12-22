@@ -29,9 +29,13 @@ struct ExtrinsicTransform {
 void publish_static_transforms(const std::shared_ptr<tf2_ros::StaticTransformBroadcaster>& static_broadcaster, const rclcpp::Node::SharedPtr& node) {
     // Define the transforms between different coordinate frames
     // Format: parent frame, child frame, translation [x,y,z], rotation [roll,pitch,yaw] in degrees
+    // Get node namespace
+    std::string node_namespace = node->get_namespace();
+    RCLCPP_INFO_STREAM(node->get_logger(), "Namespace in tf_publisher: " << node_namespace);
+
     std::vector<ExtrinsicTransform> extrinsics = {
-        {"body", "world", {0.068, 0.0116, 0.0168}, {0, 270, 0}},    // Transform from body to world frame
-        {"body", "hires", {0.068, -0.012, 0.015}, {90, 270, 0}}     // Transform from body to high-res camera frame
+        {node_namespace + "/body", node_namespace + "/world", {0.068, 0.0116, 0.0168}, {0, 270, 0}},    // Transform from body to world frame
+        {node_namespace + "/body", node_namespace + "/hires", {0.068, -0.012, 0.015}, {90, 270, 0}}     // Transform from body to high-res camera frame
     };
 
     // Vector to store all transforms
