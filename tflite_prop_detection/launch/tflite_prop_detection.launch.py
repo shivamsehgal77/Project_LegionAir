@@ -20,6 +20,7 @@ def generate_launch_description():
     # Extract the id parameter
      # Get namespace from environment variable
     uav_namespace = os.getenv('UAV_NAMESPACE')
+    
     if uav_namespace is None:
         raise RuntimeError("Environment variable UAV_NAMESPACE must be set (e.g., uav_1, uav_2, etc.)")
     

@@ -1,3 +1,3 @@
 offboard_control_node:
   ros__parameters:
-    id: 2
+    id: 1

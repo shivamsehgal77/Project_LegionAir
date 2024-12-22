@@ -41,6 +41,10 @@ public:
     
     // Get node namespace for topic names
     node_namespace_ = this->get_namespace();
+    transform_namespace = node_namespace_;
+    if (!transform_namespace.empty() && transform_namespace.front() == '/') {
+        transform_namespace.erase(0, 1);
+    }
     RCLCPP_INFO_STREAM(this->get_logger(), "Namespace in pc_transform: " << node_namespace_);
     std::string topic_name_tof = node_namespace_ + "/tof_pc";
     
@@ -76,7 +80,8 @@ private:
     try {
       // Look up transform from point cloud frame to target frame
       geometry_msgs::msg::TransformStamped transform_stamped;
-      transform_stamped = tf_buffer_->lookupTransform(node_namespace_ + "/hires", pc_msg->header.frame_id, tf2::TimePointZero);
+      std::string frame_id = transform_namespace + pc_msg->header.frame_id;
+      transform_stamped = tf_buffer_->lookupTransform(transform_namespace  + "hires", frame_id, tf2::TimePointZero);
       
       // Extract translation and rotation from transform
       translation_vector[0] = transform_stamped.transform.translation.x;
@@ -103,7 +108,7 @@ private:
       // Convert back to ROS message and publish
       sensor_msgs::msg::PointCloud2 transformed_pc;
       pcl::toROSMsg(*transformed_cloud, transformed_pc);
-      transformed_pc.header.frame_id = node_namespace_ + "/hires";
+      transformed_pc.header.frame_id = transform_namespace + "hires";
       pc_pub_->publish(transformed_pc);
     } catch (tf2::TransformException &ex) {
       RCLCPP_WARN(this->get_logger(), "Failure: %s\n", ex.what());
@@ -126,6 +131,7 @@ private:
   Eigen::Quaterniond q;
   Eigen::Matrix3d rotation_matrix;
   std::string node_namespace_;
+  std::string transform_namespace;
 };
 
 int main(int argc, char** argv) {
