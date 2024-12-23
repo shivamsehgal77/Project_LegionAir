@@ -79,3 +79,17 @@ The project is organized into the following ROS2 packages:
 - Provides bounding box and confidence scores for detected drones
 
 Each package contains detailed documentation about its specific functionality, setup instructions, and node implementations.
+
+### VOXL2 Configuration
+[drone](./drone.md)
+- Provides detailed configuration instructions for VOXL2 drone setup
+- Documents system components, versions, and dependencies
+- Includes configuration files and setup commands for:
+  - VOXL TFLite Server
+  - VOXL Vision Hub
+  - VOXL Camera Server
+  - Multi-drone namespace configuration
+  - Docker container setup
+  - ROS2 workspace configuration
+  - ROS2-PX4 bridge integration
+
